@@ -718,8 +718,18 @@ async function _syncAll() {
       fetch(API_BASE + '/api/temp-auths').then(r=>r.json()),
       fetch(API_BASE + '/api/admins').then(r=>r.json())
     ]);
-    _bookings = bk || []; _users = us || {}; _tempAuths = ta || []; _admins = ad;
+    _bookings = bk || []; _users = fixUserNames(us || {}); _tempAuths = ta || []; _admins = ad;
   } catch(e) { console.error('sync error:', e); }
+}
+
+// 修复数据库编码损坏导致的用户名乱码
+function fixUserNames(users) {
+  const hashToName = { h_715gzb: '刘展', h_tprlw7: '勾霜' };
+  const fixed = {};
+  for (const [name, hash] of Object.entries(users)) {
+    fixed[hashToName[hash] || name] = hash;
+  }
+  return fixed;
 }
 
 function loadBookings() { return _bookings; }
@@ -794,7 +804,7 @@ function hashPassword(pw) {
 }
 
 function getUsers() { return _users; }
-function saveUsers(u) { _users = u; fetch(API_BASE + '/api/users',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(u)}).catch(e=>console.error(e)); }
+function saveUsers(u) { const cleaned = fixUserNames(u); _users = cleaned; fetch(API_BASE + '/api/users',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(cleaned)}).catch(e=>console.error(e)); }
 
 // Session stays in localStorage (per-browser auto-login; 30-day expiry is client-side concern)
 function getSession() {
