@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>直播间预约系统</title>
+<style>
+:root {
+  --primary: #6c5ce7;
+  --primary-light: #f0edff;
+  --bg: #f7f6fb;
+  --card: #ffffff;
+  --text: #1e1e2e;
+  --text-secondary: #6b6b80;
+  --border: #e8e5f0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.1);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --danger: #e74c3c;
+  --success: #27ae60;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh;
+}
+
+/* ── Header ── */
+.header {
+  background: var(--card); border-bottom:1px solid var(--border);
+  padding:0 24px; height:60px; display:flex; align-items:center;
+  justify-content:space-between; box-shadow:var(--shadow);
+  position:sticky; top:0; z-index:100;
+}
+.header-left { display:flex; align-items:center; gap:10px; }
+.header-left .logo {
+  width:34px; height:34px; background:linear-gradient(135deg,#6c5ce7,#a29bfe);
+  border-radius:8px; display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:17px;
+}
+.header-left h1 { font-size:17px; font-weight:600; }
+.header-right { display:flex; align-items:center; gap:12px; }
+.header-now {
+  font-size:13px; color:var(--text-secondary);
+  background:var(--bg); padding:5px 12px; border-radius:16px;
+}
+
+/* Auth code button *//* ── Buttons ── */
+.btn {
+  padding:8px 18px; border:none; border-radius:var(--radius-sm);
+  font-size:13px; cursor:pointer; font-weight:500; font-family:inherit;
+  transition:all .2s; display:inline-flex; align-items:center; gap:5px;
+}
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-primary:hover { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 4px 12px rgba(108,92,231,.3); }
+.btn-outline { background:#fff; color:var(--primary); border:1.5px solid var(--primary); }
+.btn-outline:hover { background:var(--primary-light); }
+.btn-danger { background:#fff; color:var(--danger); border:1.5px solid var(--danger); }
+.btn-danger:hover { background:#fef2f2; }
+.btn-sm { padding:5px 12px; font-size:12px; }
+.btn-xs { padding:3px 10px; font-size:11px; }
+
+/* ── Layout ── */
+.main {
+  max-width:1200px; margin:0 auto; padding:20px 20px;
+}
+
+/* ── View Tabs ── */
+.view-tabs-row {
+  display:flex; gap:4px; background:var(--card); padding:4px;
+  border-radius:var(--radius); box-shadow:var(--shadow);
+  margin-bottom:16px;
+}
+.view-tab-btn {
+  flex:1; padding:10px 0; border:none; background:transparent;
+  font-size:14px; cursor:pointer; font-weight:500; font-family:inherit;
+  color:var(--text-secondary); border-radius:10px; transition:all .15s;
+}
+.view-tab-btn.active { background:var(--primary); color:#fff; box-shadow:0 2px 8px rgba(108,92,231,.3); }
+
+/* ── Month View ── */
+.month-view {}
+.month-nav {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:16px;
+}
+.month-nav .month-label { font-size:20px; font-weight:700; }
+.month-nav .nav-btns { display:flex; gap:8px; }
+.nav-btn {
+  width:34px; height:34px; border:1.5px solid var(--border); background:#fff;
+  border-radius:8px; cursor:pointer; display:flex; align-items:center;
+  justify-content:center; font-size:14px; transition:all .15s;
+}
+.nav-btn:hover { border-color:var(--primary); background:var(--primary-light); }
+
+.calendar-grid {
+  display:grid; grid-template-columns:repeat(7,1fr); gap:6px;
+}
+.day-header {
+  text-align:center; font-size:12px; font-weight:600; color:var(--text-secondary);
+  padding:8px 0; text-transform:uppercase;
+}
+.day-cell {
+  background:var(--card); border-radius:var(--radius-sm); padding:8px;
+  min-height:88px; cursor:pointer; border:2px solid transparent;
+  transition:all .15s; position:relative; display:flex; flex-direction:column;
+}
+.day-cell:hover { border-color:var(--primary); box-shadow:0 2px 10px rgba(108,92,231,.1); }
+.day-cell.today { border-color:var(--primary); background:var(--primary-light); }
+.day-cell.other-month { opacity:.35; cursor:default; }
+.day-cell.other-month:hover { border-color:transparent; box-shadow:none; }
+.day-cell.locked { opacity:.7; cursor:pointer; background:#fffbeb; }
+.day-cell.locked:hover { border-color:#fcd34d; box-shadow:0 2px 10px rgba(245,158,11,.1); }
+.day-cell .day-num {
+  font-size:14px; font-weight:600; margin-bottom:4px;
+}
+.day-cell.today .day-num {
+  background:var(--primary); color:#fff; width:26px; height:26px;
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+}
+.day-cell .room-dots { display:flex; flex-wrap:wrap; gap:3px; margin-top:auto; }
+.day-cell .room-dot {
+  width:8px; height:8px; border-radius:50%; flex-shrink:0;
+}
+.day-cell .day-summary {
+  font-size:10px; color:var(--text-secondary); margin-top:3px;
+}
+
+/* ── Room legend row ── */
+.legend-row {
+  display:flex; gap:16px; flex-wrap:wrap; margin-bottom:16px; padding:12px 16px;
+  background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+  align-items:center;
+}
+.legend-item { display:flex; align-items:center; gap:6px; font-size:13px; }
+.legend-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+.legend-sep { color:var(--border); }
+
+/* ── Daily View ── */
+.daily-view {}
+.daily-nav {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+.daily-nav .date-label { font-size:18px; font-weight:700; }
+.daily-nav .nav-btns { display:flex; gap:4px; }
+
+.timeline-card {
+  background:var(--card); border-radius:var(--radius);
+  box-shadow:var(--shadow); overflow:hidden;
+}
+.timeline-scroll { overflow-y:auto; flex:1; }
+.timeline-scroll::-webkit-scrollbar { width:5px; }
+.timeline-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+
+.timeline-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+.timeline-table thead { position:sticky; top:0; z-index:5; }
+.timeline-table thead th {
+  background:var(--bg); padding:6px 8px; font-size:11px; font-weight:600;
+  color:var(--text-secondary); border-bottom:2px solid var(--border);
+  text-align:center;
+}
+.timeline-table thead th.time-col { width:55px; }
+.timeline-table tbody td {
+  padding:0; border-bottom:1px solid #f5f3fa; height:34px;
+  text-align:center; vertical-align:top; position:relative;
+}
+.timeline-table .time-label-cell {
+  font-size:10px; color:var(--text-secondary); padding:2px 4px !important;
+  text-align:right; vertical-align:top !important; font-weight:500;
+  border-right:1px solid var(--border);
+}
+.booking-slot {
+  position:relative; height:100%; min-height:34px; display:flex;
+  align-items:center; justify-content:center;
+}
+.booking-filled {
+  background:var(--primary-light); border-left:3px solid var(--primary);
+  margin:1px 3px; border-radius:5px; padding:3px 5px;
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; cursor:pointer; transition:all .1s;
+  font-size:10px; min-height:28px; position:relative; gap:1px;
+}
+.booking-filled:hover { filter:brightness(.95); }
+.booking-filled .cancel-btn-card {
+  position:absolute; top:2px; right:3px;
+  padding:1px 6px; border-radius:3px; font-size:10px;
+  color:#fff; cursor:pointer; background:#ef4444; border:none;
+  font-family:inherit; line-height:1.6; font-weight:600; display:none;
+  transition:background .15s;
+}
+.booking-filled:hover .cancel-btn-card { display:block; }
+.booking-filled .cancel-btn-card:hover { background:#dc2626; }
+.booking-filled .cancel-btn-card.disabled { background:#ccc; cursor:not-allowed; }
+
+/* Monthly calendar in daily view - compact */
+.mini-month-strip {
+  display:flex; gap:4px; margin-bottom:12px; overflow-x:auto;
+  padding-bottom:6px; scrollbar-width:thin;
+}
+.mini-month-strip::-webkit-scrollbar { height:4px; }
+.mini-month-strip::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+.mini-month-header {
+  min-width:auto; padding:6px 10px; text-align:center;
+  font-size:12px; font-weight:700; color:#fff;
+  flex-shrink:0; margin-right:6px;
+  display:flex; align-items:center; justify-content:center;
+  writing-mode:horizontal-tb; letter-spacing:1px;
+  background:var(--primary); border-radius:8px;
+  white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.08);
+}
+
+/* Booking modal calendar */
+.book-cal-nav {
+  display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:2px;
+}
+.book-cal-nav-label { font-size:11px; font-weight:700; color:var(--text); min-width:60px; text-align:center; }
+.book-cal-nav-btn {
+  width:20px; height:20px; border-radius:4px; border:1px solid var(--border);
+  background:var(--card); cursor:pointer; font-size:11px; display:flex;
+  align-items:center; justify-content:center; transition:all .12s;
+}
+.book-cal-nav-btn:hover { border-color:var(--primary); background:var(--primary-light); }
+.book-cal-grid {
+  display:grid; grid-template-columns:repeat(7,1fr); gap:1px;
+}
+.book-cal-hdr {
+  text-align:center; font-size:9px; font-weight:600; color:var(--text-secondary);
+  padding:0;
+}
+.book-cal-cell {
+  padding:2px 0; text-align:center; border-radius:50%; cursor:pointer;
+  font-size:10px; font-weight:500; border:2px solid transparent;
+  background:transparent; transition:all .12s; user-select:none;
+  aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+  line-height:1;
+}
+.book-cal-cell:hover { border-color:var(--primary); background:var(--primary-light); }
+.book-cal-cell.selected { border-color:var(--primary); background:var(--primary-light); font-weight:700; box-shadow:0 0 0 2px rgba(59,130,246,.15); }
+.book-cal-cell.today { border-color:var(--primary); background:#eff6ff; font-weight:700; }
+.book-cal-cell.other-month { opacity:.3; cursor:default; pointer-events:none; background:transparent; }
+.book-cal-cell.other-month:hover { border-color:transparent; background:transparent; box-shadow:none; }
+.book-cal-cell.locked { opacity:.35; cursor:not-allowed; pointer-events:none; background:#f8f8f8; }
+.book-cal-cell.past { opacity:.3; cursor:not-allowed; pointer-events:none; background:transparent; }
+.mini-day {
+  min-width:38px; padding:5px 4px; text-align:center; border-radius:8px;
+  cursor:pointer; font-size:11px; border:2px solid transparent;
+  background:var(--card); transition:all .12s; flex-shrink:0;
+}
+.mini-day:hover { border-color:var(--primary); }
+.mini-day.active { border-color:var(--primary); background:var(--primary-light); font-weight:600; }
+.mini-day .mini-num { font-size:14px; font-weight:600; }
+.mini-day .mini-wd { font-size:10px; color:var(--text-secondary); }
+.mini-day .mini-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-top:2px; }
+.mini-day.locked { opacity:.6; cursor:pointer; background:#fffbeb; }
+.mini-day.locked:hover { border-color:#fcd34d; }
+.mini-day.today .mini-num { background:var(--primary); color:#fff; border-radius:50%; display:inline-block; width:22px; height:22px; line-height:22px; }
+
+/* ── My Bookings ── */
+.my-bookings {}
+.booking-filter {
+  display:flex; gap:10px; margin-bottom:14px; align-items:center;
+}
+.booking-filter input {
+  padding:8px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm);
+  font-size:13px; font-family:inherit; width:200px;
+}
+.booking-filter input:focus { outline:none; border-color:var(--primary); }
+.booking-table { width:100%; border-collapse:collapse; }
+.booking-table th {
+  text-align:left; padding:10px 12px; font-size:11px; font-weight:600;
+  color:var(--text-secondary); border-bottom:2px solid var(--border);
+  text-transform:uppercase; letter-spacing:.5px; background:var(--bg);
+}
+.booking-table td {
+  padding:11px 12px; border-bottom:1px solid var(--border); font-size:13px;
+}
+.booking-table tr:hover td { background:#faf9ff; }
+.tag {
+  font-size:11px; padding:3px 10px; border-radius:12px; font-weight:500;
+}
+.tag-upcoming { background:#dbeafe; color:#1d4ed8; }
+.tag-ongoing { background:#dcfce7; color:#16a34a; }
+.tag-past { background:#f1f5f9; color:#64748b; }
+.tag-admin { background:#fce7f3; color:#9d174d; font-size:10px; padding:2px 6px; }
+
+.empty-state { text-align:center; padding:48px; color:var(--text-secondary); }
+.empty-state .icon { font-size:48px; opacity:.4; margin-bottom:10px; }
+.empty-state p { font-size:13px; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  background:rgba(15,15,40,.45); z-index:300;
+  display:flex; align-items:center; justify-content:center;
+}
+.modal {
+  background:#fff; border-radius:var(--radius); width:460px;
+  max-height:88vh; box-shadow:var(--shadow-lg);
+  display:flex; flex-direction:column; animation:slideUp .2s ease;
+}
+@keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-header {
+  padding:12px 18px 10px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.modal-header h3 { font-size:15px; font-weight:600; }
+.modal-close {
+  width:28px; height:28px; border:none; background:var(--bg);
+  border-radius:6px; cursor:pointer; font-size:16px; color:var(--text-secondary);
+  display:flex; align-items:center; justify-content:center;
+}
+.modal-close:hover { background:#fee2e2; color:var(--danger); }
+.modal-body { padding:14px 18px; overflow-y:auto; flex:1; }
+.modal-footer {
+  padding:10px 18px; border-top:1px solid var(--border);
+  display:flex; justify-content:flex-end; gap:8px;
+}
+
+.form-group { margin-bottom:10px; }
+.form-group label { display:block; font-size:11px; font-weight:600; margin-bottom:3px; color:var(--text); }
+.form-group label .req { color:var(--danger); }
+.form-input, .form-select {
+  width:100%; padding:7px 10px; border:1.5px solid var(--border);
+  border-radius:var(--radius-sm); font-size:12px; font-family:inherit;
+  transition:border-color .15s; background:#fff; color:var(--text);
+}
+.form-input:focus, .form-select:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(108,92,231,.08); }
+.form-input-readonly { background:#f0edfb; color:var(--text); cursor:default; }
+.form-row { display:flex; gap:8px; }
+.form-row .form-group { flex:1; }
+.form-error { font-size:10px; color:var(--danger); margin-top:2px; display:none; }
+.has-error .form-input, .has-error .form-select { border-color:var(--danger); }
+.has-error .form-error { display:block; }
+.form-hint { font-size:10px; color:var(--text-secondary); margin-top:2px; }
+.warning-box {
+  background:#fef3c7; border:1px solid #fcd34d; border-radius:8px;
+  padding:8px 12px; font-size:11px; color:#92400e; margin-top:6px;
+}
+
+/* ── Toast ── */
+.toast {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:#1e1e2e; color:#fff;
+  padding:16px 28px; border-radius:var(--radius-sm); font-size:15px;
+  z-index:9999; box-shadow:var(--shadow-lg);
+  animation:toastIn .35s ease;
+  min-width:200px; text-align:center;
+}
+@keyframes toastIn { from{opacity:0;transform:translate(-50%,-50%) scale(.9)} to{opacity:1;transform:translate(-50%,-50%) scale(1)} }
+.toast.ok { background:#27ae60; }
+.toast.err { background:#e74c3c; }
+
+/* ── Stats ── */
+.stats-row { display:flex; gap:12px; margin-bottom:16px; }
+.stat-card {
+  flex:1; background:var(--card); border-radius:var(--radius);
+  padding:16px 20px; box-shadow:var(--shadow);
+}
+.stat-card .stat-num { font-size:28px; font-weight:700; color:var(--primary); }
+.stat-card .stat-label { font-size:12px; color:var(--text-secondary); margin-top:2px; }
+
+/* Auth code button in header */
+.auth-code-btn {
+  background:#dbeafe; border:1.5px solid #93c5fd; color:#1d4ed8;
+  padding:5px 12px; border-radius:16px; cursor:pointer;
+  font-size:12px; font-weight:600; user-select:none; display:none;
+  font-family:inherit; transition:all .2s;
+}
+.auth-code-btn:hover { background:#bfdbfe; }
+.auth-code-btn.visible { display:inline-flex; align-items:center; gap:4px; }
+
+/* Current user badge (read-only, replaces input) */
+.auth-code-table { width:100%; border-collapse:collapse; font-size:13px; }
+.auth-code-table th { text-align:left; padding:8px 12px; border-bottom:2px solid var(--border); font-size:11px; color:var(--text-secondary); }
+.auth-code-table td { padding:10px 12px; border-bottom:1px solid var(--border); }
+.auth-code-val { font-family:'Courier New',monospace; font-weight:700; font-size:16px; letter-spacing:3px; color:var(--primary); background:var(--primary-light); padding:2px 8px; border-radius:4px; }
+
+/* Login overlay */
+.login-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(6px);
+  display:flex; align-items:center; justify-content:center; z-index:9999;
+}
+.login-card {
+  background:var(--card); border-radius:16px; padding:32px 28px; width:380px; max-width:92vw;
+  box-shadow:var(--shadow-lg); text-align:center;
+}
+.login-card .login-icon { font-size:48px; margin-bottom:8px; }
+.login-card h2 { font-size:20px; font-weight:700; margin-bottom:4px; }
+.login-card .login-sub { font-size:13px; color:var(--text-secondary); margin-bottom:20px; }
+.login-card .form-group { text-align:left; margin-bottom:14px; }
+.login-card .form-group label { font-size:12px; color:var(--text-secondary); display:block; margin-bottom:4px; }
+.login-card .form-input {
+  width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:10px;
+  font-size:14px; font-family:inherit; background:var(--bg); color:var(--text);
+}
+.login-card .form-input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(108,92,231,0.12); }
+.login-btn {
+  width:100%; padding:11px; background:var(--primary); color:#fff; border:none;
+  border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; margin-top:4px;
+  transition:all .15s;
+}
+.login-btn:hover { background:#5b4bd5; }
+.login-error { color:var(--danger); font-size:12px; margin-top:6px; display:none; }
+
+/* Current user badge (read-only, replaces input) */
+.current-user-badge {
+  display:flex; align-items:center; gap:6px; background:var(--primary-light);
+  border-radius:16px; padding:4px 12px; font-size:13px; font-weight:600; color:var(--primary);
+  cursor:default;
+}
+.current-user-badge .logout-x {
+  width:18px; height:18px; border-radius:50%; border:none; background:transparent;
+  color:var(--text-secondary); cursor:pointer; font-size:14px; display:flex;
+  align-items:center; justify-content:center; margin-left:2px; transition:all .15s;
+}
+.current-user-badge .logout-x:hover { background:#e8e0ff; color:var(--danger); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">&#x1F4FA;</div>
+    <h1>直播间预约系统</h1>
+  </div>
+  <div class="header-right">
+    <span class="header-now" id="headerNow"></span>
+    <div class="current-user-badge" id="currentUserBadge" style="display:none;" title="当前登录用户">
+      <span id="currentUserDisplay"></span>
+      <button class="logout-x" onclick="doLogout()" title="退出登录">&times;</button>
+    </div>
+    <button class="auth-code-btn" id="authCodeBtn" onclick="openTempAuthModal()" style="display:none;">&#x1F511; 临时授权管理</button>
+  </div>
+</header>
+
+<div class="main">
+  <!-- View Tabs -->
+  <div class="view-tabs-row">
+    <button class="view-tab-btn active" data-view="month" onclick="switchTab('month')">日历月视图</button>
+    <button class="view-tab-btn" data-view="day" onclick="switchTab('day')">单日详情</button>
+    <button class="view-tab-btn" data-view="my" onclick="switchTab('my')">我的预约</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">当月总预约</div></div>
+    <div class="stat-card"><div class="stat-num" id="statToday">0</div><div class="stat-label">今日预约</div></div>
+    <div class="stat-card"><div class="stat-num" id="statUpcoming">0</div><div class="stat-label">即将开始</div></div>
+  </div>
+
+  <!-- ──────── Month View ──────── -->
+  <div class="month-view" id="monthView">
+    <div class="month-nav">
+      <span class="month-label" id="monthLabel"></span>
+      <div class="nav-btns">
+        <button class="nav-btn" onclick="prevMonth()" title="上个月">&larr;</button>
+        <button class="nav-btn" onclick="goCurrentMonth()" title="本月">&#x1F4C5;</button>
+        <button class="nav-btn" onclick="nextMonth()" title="下个月">&rarr;</button>
+      </div>
+    </div>
+
+    <div class="legend-row" id="monthLegend"></div>
+
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+
+  <!-- ──────── Day View ──────── -->
+  <div class="daily-view" id="dayView" style="display:none;">
+    <div class="daily-nav">
+      <span class="date-label" id="dayDateLabel"></span>
+      <div class="nav-btns">
+        <button class="nav-btn" onclick="prevDay()" title="前一天">&larr;</button>
+        <button class="nav-btn" onclick="goToday()" title="今天">今</button>
+        <button class="nav-btn" onclick="nextDay()" title="后一天">&rarr;</button>
+      </div>
+    </div>
+
+    <!-- mini month strip -->
+    <div class="mini-month-strip" id="miniMonthStrip"></div>
+
+    <!-- timeline -->
+    <div class="timeline-card">
+      <div class="timeline-scroll">
+        <table class="timeline-table" id="timelineTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;text-align:center;">
+      <button class="btn btn-primary" onclick="openBookModal()" id="dayBookBtn">+ 预约直播间</button>
+    </div>
+  </div>
+
+  <!-- ──────── My Bookings ──────── -->
+  <div class="my-bookings" id="myBookingsView" style="display:none;">
+    <div class="booking-filter">
+      <input type="text" id="myNameFilter" placeholder="输入使用人姓名筛选..." oninput="renderMyBookings()">
+      <span style="font-size:12px;color:var(--text-secondary);" id="bookingRangeLabel"></span>
+    </div>
+    <div id="myBookingsContent"></div>
+  </div>
+</div>
+
+<!-- ──────── Booking Modal ──────── -->
+<div class="modal-overlay" id="bookModalOverlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="bookModalTitle">预约直播间</h3>
+      <button class="modal-close" onclick="closeModal('bookModalOverlay')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" id="fgRoom">
+        <label>直播间 <span class="req">*</span></label>
+        <select class="form-select" id="bookRoom"><option value="">请选择</option></select>
+        <div class="form-error">请选择直播间</div>
+      </div>
+      <div class="form-group" id="fgDate">
+        <label>日期 <span class="req">*</span></label>
+        <input type="hidden" id="bookDate">
+        <div class="book-cal-nav">
+          <button class="book-cal-nav-btn" onclick="navigateBookCalMonth(-1)">&larr;</button>
+          <span class="book-cal-nav-label" id="bookCalMonthLabel">2026年6月</span>
+          <button class="book-cal-nav-btn" onclick="navigateBookCalMonth(1)">&rarr;</button>
+        </div>
+        <div class="book-cal-grid" id="bookCalGrid"></div>
+        <div class="form-error" id="fgDateErr">请选择日期</div>
+        <div class="form-hint" id="dateHint"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" id="fgStart">
+          <label>开始时间 <span class="req">*</span></label>
+          <select class="form-select" id="bookStart"></select>
+          <div class="form-error">请选择开始时间</div>
+        </div>
+        <div class="form-group" id="fgEnd">
+          <label>结束时间 <span class="req">*</span></label>
+          <select class="form-select" id="bookEnd"></select>
+          <div class="form-error">请选择结束时间</div>
+          <div class="form-hint">单次最多4小时</div>
+        </div>
+      </div>
+      <div class="form-group" id="fgName">
+        <label>使用人姓名 <span class="req">*</span></label>
+        <input type="text" class="form-input form-input-readonly" id="bookName" readonly title="使用人默认为当前登录用户，不可更改">
+        <div class="form-error">请输入使用人姓名</div>
+      </div>
+      <div class="form-group" id="fgNote">
+        <label>用途 <span class="req">*</span></label>
+        <input type="text" class="form-input" id="bookNote" placeholder="请填写使用用途">
+        <div class="form-error">请填写使用用途</div>
+      </div>
+      <div class="form-group" id="fgAuthCode" style="display:none;"></div>
+      <div class="warning-box" id="conflictWarn" style="display:none;">
+        <strong>&#9888;&#65039; 该时段与以下预约冲突，请调整时间或直播间：</strong>
+        <div id="conflictList" style="margin-top:6px;display:flex;flex-direction:column;gap:4px;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('bookModalOverlay')">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="submitBooking()">确认预约</button>
+    </div>
+  </div>
+</div>
+
+<!-- ──────── Detail Modal ──────── -->
+<div class="modal-overlay" id="detailModalOverlay" style="display:none;">
+  <div class="modal" style="width:400px;">
+    <div class="modal-header">
+      <h3>预约详情</h3>
+      <button class="modal-close" onclick="closeModal('detailModalOverlay')">&times;</button>
+    </div>
+    <div class="modal-body" id="detailContent"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="detailCancelBtn" onclick="cancelFromDetail()">取消预约</button>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('detailModalOverlay')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ──────── Edit Booking Modal (Admin only) ──────── -->
+<div class="modal-overlay" id="editModalOverlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>编辑预约（管理员）</h3>
+      <button class="modal-close" onclick="closeModal('editModalOverlay')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editBookingId">
+      <div class="form-group" id="efgRoom">
+        <label>直播间 <span class="req">*</span></label>
+        <select class="form-select" id="editRoom"><option value="">请选择</option></select>
+        <div class="form-error">请选择直播间</div>
+      </div>
+      <div class="form-group" id="efgDate">
+        <label>日期 <span class="req">*</span></label>
+        <input type="date" class="form-input" id="editDate">
+        <div class="form-error">请选择日期</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" id="efgStart">
+          <label>开始时间 <span class="req">*</span></label>
+          <select class="form-select" id="editStart"></select>
+          <div class="form-error">请选择开始时间</div>
+        </div>
+        <div class="form-group" id="efgEnd">
+          <label>结束时间 <span class="req">*</span></label>
+          <select class="form-select" id="editEnd"></select>
+          <div class="form-error">请选择结束时间</div>
+          <div class="form-hint">单次最多4小时</div>
+        </div>
+      </div>
+      <div class="form-group" id="efgName">
+        <label>使用人姓名 <span class="req">*</span></label>
+        <input type="text" class="form-input" id="editName" placeholder="请输入使用人姓名">
+        <div class="form-error">请输入使用人姓名</div>
+      </div>
+      <div class="form-group" id="efgNote">
+        <label>用途 <span class="req">*</span></label>
+        <input type="text" class="form-input" id="editNote" placeholder="请填写使用用途">
+        <div class="form-error">请填写使用用途</div>
+      </div>
+      <div class="warning-box" id="editConflictWarn" style="display:none;">
+        &#9888;&#65039; 该时段已被占用，请调整时间或直播间。
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('editModalOverlay')">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="submitEditBooking()">保存修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- ──────── Temp Auth Modal ──────── -->
+<div class="modal-overlay" id="authCodeModalOverlay" style="display:none;">
+  <div class="modal" style="width:520px;max-height:85vh;overflow-y:auto;">
+    <div class="modal-header">
+      <h3>&#x1F511; 临时授权管理</h3>
+      <button class="modal-close" onclick="closeModal('authCodeModalOverlay')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">授予用户1小时内可预约未来一周以外的直播间</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
+        <select id="tempAuthUserSelect" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+          <option value="">选择用户...</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="doGrantTempAuth()">授予临时权限</button>
+      </div>
+      <div id="tempAuthList"></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:18px 0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:13px;font-weight:600;">&#x1F464; 用户管理</span>
+      </div>
+      <div id="userMgmtList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('authCodeModalOverlay')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Login overlay -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-icon">&#x1F4FA;</div>
+    <h2 id="loginTitle">直播间预约系统</h2>
+    <div class="login-sub" id="loginSub">首次使用，请设置姓名和密码</div>
+    <div class="form-group">
+      <label for="loginName">姓名 <span style="color:#e74c3c;">*</span></label>
+      <input type="text" class="form-input" id="loginName" placeholder="请输入您的真实姓名" autocomplete="username">
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">&#x26A0; 请使用真实姓名，用于预约身份识别</div>
+    </div>
+    <div class="form-group">
+      <label for="loginPassword">密码（6位数字）</label>
+      <input type="password" class="form-input" id="loginPassword" placeholder="请设置/输入6位数字密码" maxlength="6" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">确认进入</button>
+    <div class="login-error" id="loginError"></div>
+    <div style="margin-top:12px;font-size:12px;color:var(--text-secondary);">
+      <a href="#" onclick="showForgotPwdHint();return false;" style="color:var(--primary);text-decoration:none;">忘记密码？</a>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════ DATA ═══════════════
+const ROOMS = [
+  { id:'r1', name:'1楼-59', color:'#6366f1' },
+  { id:'r2', name:'3楼-48', color:'#06b6d4' },
+  { id:'r3', name:'3楼-57', color:'#f59e0b' },
+  { id:'r4', name:'7楼-13', color:'#22c55e' },
+];
+
+const START_HOUR = 9;
+const END_HOUR = 23; // exclusive → slots: 9:00-23:00 (last slot 22:00-23:00)
+const SLOT_MINUTES = 60; // 1-hour slots
+const MAX_BOOKING_HOURS = 4;
+const BOOKING_WINDOW_DAYS = 7; // rolling 7 days (today + 6)
+
+// ── In-memory cache + auto-sync to server (shared across all users!) ──
+let _bookings = [];
+let _users = {};
+let _tempAuths = [];
+let _admins = null;
+// ── API 地址 (部署时修改为 Supabase Edge Function URL) ──
+const API_BASE = 'https://coetfxxmizncxyvrgkqj.supabase.co/functions/v1/api';
+
+async function _syncAll() {
+  try {
+    const [bk, us, ta, ad] = await Promise.all([
+      fetch(API_BASE + '/api/bookings').then(r=>r.json()),
+      fetch(API_BASE + '/api/users').then(r=>r.json()),
+      fetch(API_BASE + '/api/temp-auths').then(r=>r.json()),
+      fetch(API_BASE + '/api/admins').then(r=>r.json())
+    ]);
+    _bookings = bk || []; _users = us || {}; _tempAuths = ta || []; _admins = ad;
+  } catch(e) { console.error('sync error:', e); }
+}
+
+function loadBookings() { return _bookings; }
+function createBookingAPI(b) {
+  return fetch(API_BASE + '/api/bookings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})
+    .then(r=>r.json());
+}
+function cancelBookingAPI(id) {
+  return fetch(API_BASE + '/api/bookings/'+id+'/cancel',{method:'PUT'}).then(r=>r.json());
+}
+function deleteBookingAPI(id) {
+  return fetch(API_BASE + '/api/bookings/'+id,{method:'DELETE'}).then(r=>r.json());
+}
+
+function loadTempAuths() { return _tempAuths; }
+function hasTempAuth(userName) {
+  const ta = _tempAuths.find(t => t.userName === userName);
+  if (!ta) return false;
+  const expiresAt = new Date(new Date(ta.grantedAt).getTime() + 60 * 60 * 1000);
+  return new Date() <= expiresAt;
+}
+function grantTempAuthAPI(userName) {
+  return fetch(API_BASE + '/api/temp-auths', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userName, grantedBy: currentUser})}).then(r=>r.json());
+}
+function revokeTempAuthAPI(userName) {
+  return fetch(API_BASE + '/api/temp-auths/'+encodeURIComponent(userName), {method:'DELETE'}).then(r=>r.json());
+}
+
+// 授权码已废弃，保留兼容空实现
+function loadAuthCodes() { return []; }
+
+// ═══════════════ STATE ═══════════════
+let currentTab = 'month';
+let monthYear = { y: new Date().getFullYear(), m: new Date().getMonth() };
+let bookCalMonth = { y: new Date().getFullYear(), m: new Date().getMonth() };
+let selectedDay = fmtDate(new Date());
+let isAdmin = false;
+let detailBid = null;
+let currentUser = ''; // set by login system
+const SESSION_DAYS = 30;
+const SUPER_ADMIN = '刘展';
+
+// ═══════════════ ADMIN STORAGE ═══════════════
+function getAdmins() { return _admins; }
+function saveAdmins(a) { _admins = a; fetch(API_BASE + '/api/admins',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(a)}).catch(e=>console.error(e)); }
+function initAdmins() {
+  let admins = getAdmins();
+  if (!admins || !Array.isArray(admins)) {
+    admins = [SUPER_ADMIN];
+    saveAdmins(admins);
+  } else if (!admins.includes(SUPER_ADMIN)) {
+    admins.push(SUPER_ADMIN);
+    saveAdmins(admins);
+  }
+  return admins;
+}
+function isUserAdmin(name) { return getAdmins()?.includes(name) || false; }
+function isSuperAdmin() { return currentUser === SUPER_ADMIN; }
+
+// ═══════════════ LOGIN SYSTEM ═══════════════
+function hashPassword(pw) {
+  // Simple obfuscation for localStorage (not crypto-grade, but prevents casual reading)
+  let hash = 0;
+  const salt = 'liveRoom2026';
+  const str = pw + salt;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return 'h_' + Math.abs(hash).toString(36);
+}
+
+function getUsers() { return _users; }
+function saveUsers(u) { _users = u; fetch(API_BASE + '/api/users',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(u)}).catch(e=>console.error(e)); }
+
+// Session stays in localStorage (per-browser auto-login; 30-day expiry is client-side concern)
+function getSession() {
+  try { return JSON.parse(localStorage.getItem('liveRoomSession') || 'null'); } catch(e) { return null; }
+}
+function saveSession(s) { localStorage.setItem('liveRoomSession', JSON.stringify(s)); }
+function clearSession() { localStorage.removeItem('liveRoomSession'); }
+
+function daysBetween(d1, d2) {
+  return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
+}
+
+function tryAutoLogin() {
+  const session = getSession();
+  if (!session || !session.name) return false;
+  const loginTime = new Date(session.loginTime);
+  if (isNaN(loginTime.getTime())) return false;
+  if (daysBetween(loginTime, new Date()) >= SESSION_DAYS) {
+    clearSession();
+    return false;
+  }
+  // Auto-login: session is valid
+  currentUser = session.name;
+  isAdmin = isUserAdmin(currentUser);
+  updateAdminUI();
+  // Refresh login time
+  saveSession({ name: currentUser, loginTime: new Date().toISOString() });
+  updateCurrentUserUI();
+  return true;
+}
+
+function updateCurrentUserUI() {
+  const badge = document.getElementById('currentUserBadge');
+  const display = document.getElementById('currentUserDisplay');
+  if (currentUser) {
+    badge.style.display = 'flex';
+    display.textContent = currentUser;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function doLogin() {
+  const name = document.getElementById('loginName').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+
+  if (!name) { errEl.textContent = '请输入姓名'; errEl.style.display = 'block'; return; }
+  if (name.length > 20) { errEl.textContent = '姓名不能超过20个字符'; errEl.style.display = 'block'; return; }
+  if (!pw) { errEl.textContent = '请设置/输入密码'; errEl.style.display = 'block'; return; }
+  if (!/^\d{6}$/.test(pw)) { errEl.textContent = '密码必须为6位数字'; errEl.style.display = 'block'; return; }
+
+  const users = getUsers();
+  const pwHash = hashPassword(pw);
+
+  if (users[name]) {
+    // Existing user — verify password
+    if (users[name] !== pwHash) {
+      errEl.textContent = '密码错误，请重试';
+      errEl.style.display = 'block';
+      return;
+    }
+  } else {
+    // New user — register
+    users[name] = pwHash;
+    saveUsers(users);
+  }
+
+  // Login success
+  errEl.style.display = 'none';
+  currentUser = name;
+  saveSession({ name: currentUser, loginTime: new Date().toISOString() });
+  updateCurrentUserUI();
+
+  // Auto-admin based on stored admin list
+  isAdmin = isUserAdmin(name);
+  updateAdminUI();
+  if (isAdmin) {
+    toast('欢迎，' + name + '（管理员）！', 'ok');
+  } else {
+    toast('欢迎，' + name + '！', 'ok');
+  }
+
+  document.getElementById('loginOverlay').style.display = 'none';
+  refreshCurrentView();
+}
+
+function doLogout() {
+  if (!confirm('确定退出登录吗？')) return;
+  clearSession();
+  currentUser = '';
+  isAdmin = false;
+  updateAdminUI();
+  updateCurrentUserUI();
+  // Pre-fill name for easy re-login
+  document.getElementById('loginName').value = getSession()?.name || '';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('loginTitle').textContent = '直播间预约系统';
+  document.getElementById('loginSub').textContent = '请输入密码重新登录';
+  document.getElementById('loginBtn').textContent = '确认进入';
+  toast('已退出登录', 'ok');
+  refreshCurrentView();
+}
+
+// Forgot password — shows instruction to contact admin
+function showForgotPwdHint() {
+  const name = document.getElementById('loginName').value.trim();
+  const errEl = document.getElementById('loginError');
+  if (!name) {
+    errEl.textContent = '请先输入您的姓名，再点击忘记密码';
+    errEl.style.display = 'block';
+    return;
+  }
+  const users = getUsers();
+  if (!users[name]) {
+    errEl.textContent = '未找到该用户，请确认姓名是否正确';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  alert('请联系总管理员（刘展）为您重置密码。\n\n总管理员登录后，可在临时授权管理面板中点击「用户管理」进行密码重置。');
+}
+
+// Admin: reset a user's password to default
+function adminResetPwd(userName) {
+  if (!isAdmin) return;
+  if (!confirm('确定将【' + userName + '】的密码重置为 000000 吗？')) return;
+  const users = getUsers();
+  users[userName] = hashPassword('000000');
+  saveUsers(users);
+  toast('已重置 ' + userName + ' 的密码为 000000', 'ok');
+  renderUserList();
+}
+
+// Admin: delete a user account (super admin only)
+function adminDeleteUser(userName) {
+  if (!isSuperAdmin()) { toast('仅总管理员可操作', 'err'); return; }
+  if (userName === SUPER_ADMIN) { toast('无法删除总管理员账号', 'err'); return; }
+  if (!confirm('确定删除用户【' + userName + '】吗？\n\n此操作不可撤销，该用户将无法再登录系统。')) return;
+  fetch(API_BASE + '/api/users/' + encodeURIComponent(userName), { method: 'DELETE' })
+    .then(r => r.json())
+    .then(d => {
+      if (!d.ok) { toast(d.error || '删除失败', 'err'); return; }
+      // Remove from local cache
+      const users = getUsers();
+      delete users[userName];
+      _users = users;
+      toast(userName + ' 已删除', 'ok');
+      renderUserList();
+    }).catch(() => toast('删除失败，请重试', 'err'));
+}
+
+// Admin: promote a user to admin
+function adminPromote(userName) {
+  if (!isSuperAdmin()) { toast('仅总管理员可操作', 'err'); return; }
+  if (!confirm('确定将【' + userName + '】设为管理员吗？')) return;
+  const admins = getAdmins();
+  if (!admins.includes(userName)) { admins.push(userName); saveAdmins(admins); }
+  toast(userName + ' 已设为管理员', 'ok');
+  renderUserList();
+}
+
+// Admin: revoke admin permissions
+function adminRevoke(userName) {
+  if (!isSuperAdmin()) { toast('仅总管理员可操作', 'err'); return; }
+  if (userName === SUPER_ADMIN) { toast('无法取消总管理员的权限', 'err'); return; }
+  if (!confirm('确定撤销【' + userName + '】的管理员权限吗？')) return;
+  let admins = getAdmins();
+  admins = admins.filter(n => n !== userName);
+  saveAdmins(admins);
+  // If the revoked admin is currently logged in, downgrade them
+  if (currentUser === userName) {
+    isAdmin = false;
+    updateAdminUI();
+  }
+  toast(userName + ' 的管理员权限已撤销', 'ok');
+  renderUserList();
+}
+
+// Admin: render user management list
+function renderUserList() {
+  if (!isAdmin) return;
+  const users = getUsers();
+  const names = Object.keys(users);
+  const adminList = getAdmins() || [];
+  const container = document.getElementById('userMgmtList');
+  if (!container) return;
+  if (!names.length) {
+    container.innerHTML = '<div class="empty-state"><p>暂无注册用户</p></div>';
+    return;
+  }
+  const showAdminOps = isSuperAdmin();
+  container.innerHTML = '<table class="auth-code-table"><thead><tr><th>姓名</th><th>角色</th><th>操作</th></tr></thead><tbody>' +
+    names.map(n => {
+      const isUserAdm = adminList.includes(n);
+      const isSuper = n === SUPER_ADMIN;
+      let roleTag = isSuper ? '<span class="tag tag-admin" style="font-size:11px;">总管理员</span>' :
+        (isUserAdm ? '<span class="tag tag-admin" style="font-size:11px;">管理员</span>' :
+         '<span style="font-size:11px;color:var(--text-secondary);">用户</span>');
+      let ops = `<button class="btn btn-outline btn-xs" onclick="adminResetPwd('${esc(n)}')" title="重置为000000">重置密码</button>`;
+      if (showAdminOps && !isSuper) {
+        ops += ` <button class="btn btn-danger btn-xs" style="margin-left:4px;" onclick="adminDeleteUser('${esc(n)}')" title="删除用户">删除</button>`;
+        if (isUserAdm) {
+          ops += ` <button class="btn btn-danger btn-xs" style="margin-left:4px;" onclick="adminRevoke('${esc(n)}')" title="撤销管理员权限">撤销管理</button>`;
+        } else {
+          ops += ` <button class="btn btn-primary btn-xs" style="margin-left:4px;" onclick="adminPromote('${esc(n)}')" title="设为管理员">设为管理</button>`;
+        }
+      }
+      return `<tr>
+        <td><strong>${esc(n)}</strong></td>
+        <td>${roleTag}</td>
+        <td>${ops}</td>
+      </tr>`;
+    }).join('') + '</tbody></table>';
+}
+
+// ═══════════════ UTILS ═══════════════
+function fmtDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseDate(s) { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function todayStr() { return fmtDate(new Date()); }
+function monthStartStr() {
+  const now = new Date();
+  return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
+}
+function maxBookableDate() { const d=new Date(); if(d.getHours()<10)d.setDate(d.getDate()-1); d.setDate(d.getDate()+BOOKING_WINDOW_DAYS-1); return fmtDate(d); }
+function isWithinWindow(dateStr, adminOverride) {
+  if (adminOverride) return true;
+  const d = parseDate(dateStr);
+  const now = new Date();
+  const effectiveToday = new Date(); effectiveToday.setHours(0,0,0,0);
+  if (now.getHours() < 10) effectiveToday.setDate(effectiveToday.getDate() - 1);
+  const max = new Date(effectiveToday); max.setDate(max.getDate()+BOOKING_WINDOW_DAYS-1);
+  const target = new Date(d); target.setHours(0,0,0,0);
+  return target >= effectiveToday && target <= max;
+}
+function slotToTime(idx) {
+  const totalMin = START_HOUR * 60 + idx * SLOT_MINUTES;
+  return String(Math.floor(totalMin/60)).padStart(2,'0')+':'+String(totalMin%60).padStart(2,'0');
+}
+function timeToSlot(t) { const [h,m]=t.split(':').map(Number); return ((h-START_HOUR)*60+m)/SLOT_MINUTES; }
+const TOTAL_SLOTS = ((END_HOUR - START_HOUR) * 60) / SLOT_MINUTES;
+
+// ═══════════════ HEADER ═══════════════
+function updateHeader() {
+  const n=new Date();
+  const wd=['日','一','二','三','四','五','六'];
+  document.getElementById('headerNow').textContent =
+    n.getFullYear()+'年'+(n.getMonth()+1)+'月'+n.getDate()+'日 星期'+wd[n.getDay()]+' '+
+    String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+}
+setInterval(updateHeader, 30000);
+
+function updateAdminUI() {
+  document.getElementById('authCodeBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+}
+
+// ═══════════════ TAB SWITCH ═══════════════
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.view-tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-view="${tab}"]`).classList.add('active');
+  document.getElementById('monthView').style.display = tab==='month' ? 'block':'none';
+  document.getElementById('dayView').style.display = tab==='day' ? 'block':'none';
+  document.getElementById('myBookingsView').style.display = tab==='my' ? 'block':'none';
+  if (tab==='month') renderMonth();
+  else if (tab==='day') { renderMiniStrip(); renderDayTimeline(); }
+  else renderMyBookings();
+  updateStats();
+}
+function refreshCurrentView() {
+  if (currentTab==='month') renderMonth();
+  else if (currentTab==='day') { renderMiniStrip(); renderDayTimeline(); }
+  else renderMyBookings();
+  updateStats();
+}
+
+// ═══════════════ MONTH VIEW ═══════════════
+function getBookingsForDate(d) { return loadBookings().filter(b=>b.date===d); }
+
+function getMonthGrid(y,m) {
+  const first = new Date(y,m,1);
+  const last = new Date(y,m+1,0);
+  const startDay = first.getDay(); // 0=Sun
+  const totalDays = last.getDate();
+  const grid = [];
+  // fill leading blanks
+  for (let i=0; i<startDay; i++) grid.push(null);
+  for (let d=1; d<=totalDays; d++) grid.push(new Date(y,m,d));
+  // fill trailing blanks
+  while (grid.length % 7 !== 0) grid.push(null);
+  return grid;
+}
+
+function renderMonth() {
+  try {
+  const {y,m} = monthYear;
+  document.getElementById('monthLabel').textContent = y+'年'+(m+1)+'月';
+
+  // Legend
+  document.getElementById('monthLegend').innerHTML = ROOMS.map(r=>
+    `<div class="legend-item"><span class="legend-dot" style="background:${r.color}"></span>${r.name}</div>`
+  ).join('');
+
+  // Grid
+  const grid = getMonthGrid(y,m);
+  const todayDate = todayStr();
+  const maxDate = isAdmin ? '2999-12-31' : maxBookableDate();
+  const dayHeaders = ['日','一','二','三','四','五','六'];
+
+  let html = dayHeaders.map(h=>`<div class="day-header">${h}</div>`).join('');
+
+  for (const d of grid) {
+    if (!d) { html += '<div class="day-cell other-month"></div>'; continue; }
+    const ds = fmtDate(d);
+    const bookings = getBookingsForDate(ds);
+    const isToday = ds === todayDate;
+    const inWindow = isWithinWindow(ds, isAdmin);
+    const isPast = ds < todayDate;
+    const beforeMonthStart = ds < monthStartStr();
+
+    // Which rooms are booked (only show from current month's 1st)
+    // 兼容 roomId 存为房间名的情况
+    const bookedRoomIds = new Set(beforeMonthStart ? [] : bookings.map(b=>{
+      const rm = ROOMS.find(r=>r.id===b.roomId||r.name===b.roomName||r.name===b.roomId);
+      return rm ? rm.id : b.roomId;
+    }));
+    const roomDots = ROOMS.map(r=>{
+      if (bookedRoomIds.has(r.id)) {
+        return `<span class="room-dot" style="background:${r.color}" title="${r.name}"></span>`;
+      }
+      return '';
+    }).join('');
+
+    let cls = 'day-cell';
+    if (isToday) cls += ' today';
+    if (!inWindow && !isPast) cls += ' locked';
+    if (beforeMonthStart) cls += ' locked';
+    const onClick = `onclick="goToDay('${ds}')"`;
+
+    const summary = (!beforeMonthStart && bookings.length) ? `<div class="day-summary">${bookings.length}条预约</div>` : '';
+
+    html += `<div class="${cls}" ${onClick}>
+      <div class="day-num">${d.getDate()}</div>
+      <div class="room-dots">${roomDots}</div>
+      ${summary}
+    </div>`;
+  }
+
+  document.getElementById('calendarGrid').innerHTML = html;
+  } catch(e) { console.error('renderMonth error:', e); }
+}
+
+function prevMonth() {
+  if (monthYear.m===0) { monthYear.m=11; monthYear.y--; }
+  else monthYear.m--;
+  renderMonth();
+}
+function nextMonth() {
+  if (monthYear.m===11) { monthYear.m=0; monthYear.y++; }
+  else monthYear.m++;
+  renderMonth();
+}
+function goCurrentMonth() {
+  const now=new Date();
+  monthYear.y=now.getFullYear(); monthYear.m=now.getMonth();
+  renderMonth();
+}
+
+function goToDay(ds) {
+  if (ds < monthStartStr()) { toast('仅可查询当月1号起的预约详情', 'err'); return; }
+  selectedDay = ds;
+  const d = parseDate(ds);
+  monthYear = { y: d.getFullYear(), m: d.getMonth() };
+  switchTab('day');
+}
+
+// ═══════════════ DAY VIEW ═══════════════
+function renderMiniStrip() {
+  const today = new Date();
+  const endOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+  let html = '';
+  let currentMonth = -1;
+
+  const d = new Date(today);
+  while (fmtDate(d) <= fmtDate(endOfNextMonth)) {
+    const ds = fmtDate(d);
+    const mth = d.getMonth();
+
+    // Month separator header
+    if (mth !== currentMonth) {
+      currentMonth = mth;
+      html += `<div class="mini-month-header">${d.getFullYear()}年${mth + 1}月</div>`;
+    }
+
+    const inWindow = isWithinWindow(ds, isAdmin);
+    const isToday = ds === todayStr();
+    const active = ds === selectedDay;
+    const wd = ['日','一','二','三','四','五','六'][d.getDay()];
+    const bookings = getBookingsForDate(ds);
+    const hasBooking = bookings.length > 0;
+
+    let cls = 'mini-day';
+    if (active) cls += ' active';
+    if (!inWindow && ds >= todayStr()) cls += ' locked';
+    if (isToday) cls += ' today';
+
+    html += `<div class="${cls}" onclick="selectDay('${ds}')">
+      <div class="mini-num">${d.getDate()}</div>
+      <div class="mini-wd">${isToday?'今天':wd}</div>
+      ${hasBooking ? `<span class="mini-dot" style="background:var(--primary)"></span>` : ''}
+    </div>`;
+
+    d.setDate(d.getDate() + 1);
+  }
+  document.getElementById('miniMonthStrip').innerHTML = html;
+}
+
+function selectDay(ds) {
+  if (ds < monthStartStr()) { toast('仅可查询当月1号起的预约', 'err'); return; }
+  selectedDay = ds;
+  renderMiniStrip();
+  renderDayTimeline();
+}
+
+function prevDay() {
+  const d = parseDate(selectedDay);
+  d.setDate(d.getDate()-1);
+  const newDay = fmtDate(d);
+  if (newDay < monthStartStr()) { toast('仅可查询当月1号起的预约', 'err'); return; }
+  selectedDay = newDay;
+  if (currentTab==='day') { renderMiniStrip(); renderDayTimeline(); }
+}
+function nextDay() {
+  const d = parseDate(selectedDay);
+  d.setDate(d.getDate()+1);
+  selectedDay = fmtDate(d);
+  if (currentTab==='day') { renderMiniStrip(); renderDayTimeline(); }
+}
+function goToday() {
+  selectedDay = todayStr();
+  if (currentTab==='day') { renderMiniStrip(); renderDayTimeline(); }
+}
+
+function renderDayTimeline() {
+  try {
+  const dateStr = selectedDay;
+  const d = parseDate(dateStr);
+  const wd = ['日','一','二','三','四','五','六'][d.getDay()];
+
+  document.getElementById('dayDateLabel').textContent =
+    dateStr + ' 星期' + wd + (dateStr===todayStr()?' (今天)':'');
+
+  // Thead
+  let hdr = '<tr><th class="time-col">时间</th>';
+  ROOMS.forEach(r => { hdr += `<th style="color:${r.color}">${r.name}</th>`; });
+  hdr += '</tr>';
+
+  // Build slot→booking map per room: roomId → {slotIdx → booking}
+  const bookings = getBookingsForDate(dateStr);
+  const roomSlotMap = {};
+  ROOMS.forEach(r => { roomSlotMap[r.id] = {}; });
+  bookings.forEach(b => {
+    // 兼容：roomId 可能存的是内部id(如"r3")，也可能直接存的是房间名(如"3楼-57")
+    const room = ROOMS.find(r => r.id === b.roomId || r.name === b.roomName || r.name === b.roomId);
+    if (!room) return; // 找不到房间则跳过
+    const effectiveId = room.id;
+    const s0 = timeToSlot(b.startTime);
+    const s1 = timeToSlot(b.endTime);
+    for (let s=s0; s<s1; s++) roomSlotMap[effectiveId][s] = b;
+  });
+
+  // Track which rows are already "covered" by a rowspan from a prior row
+  // rowspanCovered[slotIdx] = Set of roomIds whose cell in this row is already handled by a rowspan
+  const rowspanCovered = [];
+  for (let s=0; s<TOTAL_SLOTS; s++) rowspanCovered[s] = new Set();
+
+  // Build body: always output every row; rowspan just extends cells downward
+  let body = '';
+  for (let s=0; s<TOTAL_SLOTS; s++) {
+    const t = slotToTime(s);
+    const isEven = s%2===0;
+    body += `<tr style="${isEven?'':'background:#faf9fd'}">
+      <td class="time-label-cell">${t}</td>`;
+
+    ROOMS.forEach(r => {
+      // If this cell is already covered by a rowspan from a higher row, skip
+      if (rowspanCovered[s].has(r.id)) return;
+
+      const bk = roomSlotMap[r.id][s];
+      if (bk && s === timeToSlot(bk.startTime)) {
+        // Booking starts here: emit a cell with rowspan
+        const span = timeToSlot(bk.endTime) - s;
+        // Mark the next (span-1) rows as covered for this room
+        for (let rs=s+1; rs<s+span && rs<TOTAL_SLOTS; rs++) {
+          rowspanCovered[rs].add(r.id);
+        }
+        body += `<td rowspan="${span}" style="vertical-align:top;padding:2px 3px;">
+          <div class="booking-filled" style="background:${r.color}18;border-left-color:${r.color};min-height:${44*span-4}px;"
+               onclick="showDetail('${bk.id}')">
+            <button class="cancel-btn-card" onclick="event.stopPropagation();cancelBooking('${bk.id}')" title="取消预约">取消</button>
+            <strong>${esc(bk.userName)}</strong>
+            <span style="font-size:10px;opacity:.7">${bk.startTime}-${bk.endTime}</span>
+            ${bk.note ? `<span style="font-size:10px;color:var(--text-secondary);max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(bk.note)}">${esc(bk.note)}</span>` : ''}
+          </div>
+        </td>`;
+      } else {
+        // Empty slot — no booking on past dates
+        const tEnd = slotToTime(s+1);
+        if (dateStr < todayStr()) {
+          body += `<td style="padding:2px 3px;">
+            <div class="booking-slot" style="font-size:10px;color:#ddd;min-height:40px;">${t}</div>
+          </td>`;
+        } else {
+          body += `<td style="padding:2px 3px;">
+            <div class="booking-slot" style="font-size:10px;color:#bbb;cursor:pointer;min-height:40px;"
+                 onclick="quickBook('${r.id}','${dateStr}','${t}','${tEnd}')">+ 预约</div>
+          </td>`;
+        }
+      }
+    });
+
+    body += '</tr>';
+  }
+
+  document.getElementById('timelineTable').innerHTML =
+    '<thead>'+hdr+'</thead><tbody>'+body+'</tbody>';
+
+  // Book button
+  const inWin = isWithinWindow(selectedDay, false);
+  const btn = document.getElementById('dayBookBtn');
+  btn.onclick = openBookModal;
+  if (selectedDay < todayStr()) {
+    btn.textContent = '过去日期不可预约';
+    btn.style.opacity = '.5';
+    btn.onclick = null;
+  } else if (!inWin && !isAdmin) {
+    btn.textContent = '+ 预约（需临时授权）';
+    btn.style.opacity = '1';
+  } else {
+    btn.textContent = '+ 预约直播间';
+    btn.style.opacity = '1';
+  }
+  } catch(e) { console.error('renderDayTimeline error:', e); }
+}
+
+function quickBook(roomId, date, start, end) {
+  if (date < todayStr()) { toast('已过去的日期不可预约', 'err'); return; }
+  var pd = parseDate(date);
+  bookCalMonth = { y: pd.getFullYear(), m: pd.getMonth() };
+  openBookModal();
+  document.getElementById('bookRoom').value = roomId;
+  // Set date and render calendar
+  document.getElementById('bookDate').value = date;
+  renderBookCalendar(date);
+  document.getElementById('bookStart').value = start;
+  updateEndOptions(); // 根据开始时间刷新结束时间选项
+  document.getElementById('bookEnd').value = end;
+}
+
+// ═══════════════ BOOK MODAL ═══════════════
+function openBookModal() {
+  document.getElementById('bookModalTitle').textContent = '预约直播间';
+  document.getElementById('bookModalOverlay').style.display = 'flex';
+
+  // Room selector
+  const sel = document.getElementById('bookRoom');
+  sel.innerHTML = '<option value="">请选择直播间</option>' +
+    ROOMS.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  sel.value = '';
+
+  // Date calendar
+  var preselect = selectedDay || todayStr();
+  var pd = parseDate(preselect);
+  bookCalMonth = { y: pd.getFullYear(), m: pd.getMonth() };
+  renderBookCalendar(preselect);
+
+  // Time slots
+  populateTimeSelects();
+  document.getElementById('bookStart').value = '';
+  document.getElementById('bookEnd').value = '';
+  document.getElementById('bookName').value = currentUser || '';
+  document.getElementById('bookNote').value = '';
+  document.getElementById('conflictWarn').style.display = 'none';
+  clearFormErrors();
+}
+
+function toggleAuthCodeField(dateVal) {
+  const hint = document.getElementById('dateHint');
+  if (isAdmin) {
+    hint.textContent = '管理员可预约任意未来日期，不受一周限制';
+    return;
+  }
+  const inWin = isWithinWindow(dateVal, false);
+  if (!inWin && dateVal >= todayStr()) {
+    hint.textContent = '超出可预约范围（当天起一周内），如需预约请联系HRBP获取临时授权';
+  } else {
+    hint.textContent = '可预约范围：当天起一周内（' + maxBookableDate() + ' 及之前），每日 10:00 开放新一天';
+  }
+}
+
+function navigateBookCalMonth(delta) {
+  bookCalMonth.m += delta;
+  if (bookCalMonth.m > 11) { bookCalMonth.m = 0; bookCalMonth.y++; }
+  if (bookCalMonth.m < 0) { bookCalMonth.m = 11; bookCalMonth.y--; }
+  renderBookCalendar(document.getElementById('bookDate').value || null);
+}
+
+function renderBookCalendar(preselect) {
+  const {y, m} = bookCalMonth;
+  document.getElementById('bookCalMonthLabel').textContent = y + '年' + (m+1) + '月';
+
+  const grid = document.getElementById('bookCalGrid');
+  const todayDate = todayStr();
+  const maxDate = isAdmin ? '2999-12-31' : maxBookableDate();
+  const dayHeaders = ['日','一','二','三','四','五','六'];
+
+  // Day headers
+  let html = dayHeaders.map(h => `<div class="book-cal-hdr">${h}</div>`).join('');
+
+  // Calendar cells
+  const first = new Date(y, m, 1);
+  const last = new Date(y, m+1, 0);
+  const startDay = first.getDay();
+  const totalDays = last.getDate();
+
+  // Leading blanks (previous month)
+  for (let i = 0; i < startDay; i++) {
+    html += '<div class="book-cal-cell other-month"></div>';
+  }
+
+  // Current month days
+  for (let day = 1; day <= totalDays; day++) {
+    const d = new Date(y, m, day);
+    const ds = fmtDate(d);
+    const isToday = ds === todayDate;
+    const isSelected = ds === preselect;
+    const isPast = ds < todayDate;
+    const inWindow = ds <= maxDate;
+
+    let cls = 'book-cal-cell';
+    if (isSelected) cls += ' selected';
+    if (isToday) cls += ' today';
+    if (isPast) cls += ' past';
+    else if (!inWindow && !isAdmin) cls += ' locked';
+
+    const click = (isPast || (!inWindow && !isAdmin)) ? '' : `onclick="selectBookCalDate('${ds}')"`;
+    html += `<div class="${cls}" ${click}>${day}</div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function selectBookCalDate(ds) {
+  document.getElementById('bookDate').value = ds;
+  // Update grid selection visual
+  const grid = document.getElementById('bookCalGrid');
+  grid.querySelectorAll('.book-cal-cell.selected').forEach(el => el.classList.remove('selected'));
+  const cells = grid.querySelectorAll('.book-cal-cell:not(.other-month):not(.past):not(.locked)');
+  cells.forEach(c => { if (c.textContent == parseDate(ds).getDate()) c.classList.add('selected'); });
+  document.getElementById('fgDate').classList.remove('has-error');
+  toggleAuthCodeField(ds);
+}
+
+function populateTimeSelectsEdit() {
+  const slots = [];
+  for (let s=0; s<TOTAL_SLOTS; s++) slots.push(slotToTime(s));
+  const opts = slots.map(t => `<option value="${t}">${t}</option>`).join('');
+  document.getElementById('editStart').innerHTML = opts;
+  document.getElementById('editEnd').innerHTML = opts;
+  document.getElementById('editStart').addEventListener('change', updateEditEndOptions);
+}
+
+function updateEditEndOptions() {
+  const startVal = document.getElementById('editStart').value;
+  const endSel = document.getElementById('editEnd');
+  if (!startVal) { endSel.innerHTML = '<option value="">请先选开始时间</option>'; return; }
+  const s0 = timeToSlot(startVal);
+  const opts = [];
+  for (let s=s0+1; s<=Math.min(s0+MAX_BOOKING_HOURS, TOTAL_SLOTS); s++) {
+    opts.push(`<option value="${slotToTime(s)}">${slotToTime(s)}</option>`);
+  }
+  endSel.innerHTML = opts.join('');
+}
+
+function populateTimeSelects() {
+  const slots = [];
+  for (let s=0; s<TOTAL_SLOTS; s++) slots.push(slotToTime(s));
+  // End time: start+1h to start+4h
+  const opts = slots.map(t => `<option value="${t}">${t}</option>`).join('');
+  document.getElementById('bookStart').innerHTML = opts;
+  updateEndOptions();
+  document.getElementById('bookStart').addEventListener('change', updateEndOptions);
+}
+
+function updateEndOptions() {
+  const startVal = document.getElementById('bookStart').value;
+  const endSel = document.getElementById('bookEnd');
+  if (!startVal) { endSel.innerHTML = '<option value="">请先选开始时间</option>'; return; }
+  const s0 = timeToSlot(startVal);
+  const opts = [];
+  for (let s=s0+1; s<=Math.min(s0+MAX_BOOKING_HOURS, TOTAL_SLOTS); s++) {
+    opts.push(`<option value="${slotToTime(s)}">${slotToTime(s)}</option>`);
+  }
+  endSel.innerHTML = opts.join('');
+}
+
+function clearFormErrors() {
+  document.querySelectorAll('#bookModalOverlay .form-group').forEach(g=>g.classList.remove('has-error'));
+}
+
+function submitBooking() {
+  clearFormErrors();
+  document.getElementById('conflictWarn').style.display = 'none';
+
+  const roomId = document.getElementById('bookRoom').value;
+  const date = document.getElementById('bookDate').value;
+  const start = document.getElementById('bookStart').value;
+  const end = document.getElementById('bookEnd').value;
+  const userName = document.getElementById('bookName').value.trim();
+  const note = document.getElementById('bookNote').value.trim();
+
+  let err = false;
+  if (!roomId) { document.getElementById('fgRoom').classList.add('has-error'); err=true; }
+  if (!date) { document.getElementById('fgDate').classList.add('has-error'); err=true; }
+  if (!start) { document.getElementById('fgStart').classList.add('has-error'); err=true; }
+  if (!end) { document.getElementById('fgEnd').classList.add('has-error'); err=true; }
+  if (!userName) { document.getElementById('fgName').classList.add('has-error'); err=true; }
+  if (!note) { document.getElementById('fgNote').classList.add('has-error'); err=true; }
+  if (err) return;
+
+  // Check window: if beyond 1 week, alert user
+  const inWin = isWithinWindow(date, false);
+  if (!inWin && date >= todayStr() && !isAdmin) {
+    if (!hasTempAuth(userName)) {
+      alert('仅可预约未来一周内的直播间\n\n每日 10:00 开放新一天的预约\n如有特殊情况请联系 HRBP 获取临时授权');
+      return;
+    }
+  }
+
+  // Check max 4 hours
+  const dur = timeToSlot(end) - timeToSlot(start);
+  if (dur > MAX_BOOKING_HOURS) {
+    alert('单次预约不可超过' + MAX_BOOKING_HOURS + '小时');
+    return;
+  }
+  if (dur < 1) {
+    alert('预约时长至少1小时');
+    return;
+  }
+
+  // Check not in past
+  if (date < todayStr()) {
+    alert('不可预约过去的日期');
+    return;
+  }
+
+  // Conflict detection — find ALL overlapping bookings for the same room & date
+  const all = loadBookings();
+  const conflicts = all.filter(b =>
+    b.roomId === roomId && b.date === date &&
+    !(end <= b.startTime || start >= b.endTime)
+  );
+  if (conflicts.length > 0) {
+    const listEl = document.getElementById('conflictList');
+    listEl.innerHTML = conflicts.map(c => {
+      const cRoom = ROOMS.find(r => r.id === c.roomId || r.name === c.roomName);
+      return `<div style="background:#fff;border:1px solid #fecaca;border-radius:6px;padding:6px 10px;font-size:13px;display:flex;justify-content:space-between;align-items:center;">
+        <span><span style="color:${cRoom?cRoom.color:'#666'};font-weight:600;">${cRoom?cRoom.name:''}</span> — ${c.startTime}-${c.endTime}</span>
+        <span style="color:#dc2626;font-weight:600;">${esc(c.userName)}</span>
+      </div>`;
+    }).join('');
+    document.getElementById('conflictWarn').style.display = 'block';
+    return;
+  }
+
+  const booking = {
+    id: 'bk_'+Date.now(),
+    roomId, date, startTime:start, endTime:end,
+    userName, note,
+    roomName: roomId,  // 兼容 Deno Worker 后端
+    createdAt: new Date().toISOString()
+  };
+  createBookingAPI(booking).then(r=>{
+    if(!r.ok) { toast('预约失败: '+r.error, 'err'); return; }
+    booking.id = r.recordId || booking.id;
+    _bookings.push(booking);
+    closeModal('bookModalOverlay');
+    toast('预约成功！', 'ok');
+    refreshCurrentView();
+  }).catch(e=>{ toast('预约失败，请重试', 'err'); });
+}
+
+// ═══════════════ DETAIL MODAL ═══════════════
+function showDetail(id) {
+  const b = loadBookings().find(x=>x.id===id);
+  if (!b) return;
+  detailBid = id;
+  const room = ROOMS.find(r=>r.id===b.roomId||r.name===b.roomName);
+  const canCancel = isAdmin || (isOwner && (b.date > todayStr() || (b.date===todayStr() && b.startTime > nowTime)));
+
+  document.getElementById('detailContent').innerHTML = `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:700;color:${room.color}">${room ? room.name : '未知'} — 使用人：${esc(b.userName)}</div>
+    </div>
+    <div style="background:var(--bg);border-radius:8px;padding:14px;font-size:13px;display:flex;flex-direction:column;gap:8px;">
+      <div><span style="color:var(--text-secondary)">日期：</span>${b.date}</div>
+      <div><span style="color:var(--text-secondary)">时间：</span>${b.startTime} - ${b.endTime}</div>
+      <div><span style="color:var(--text-secondary)">使用人：</span>${esc(b.userName)}</div>
+      ${b.note ? `<div><span style="color:var(--text-secondary)">用途：</span>${esc(b.note)}</div>`:''}
+    </div>`;
+  document.getElementById('detailCancelBtn').style.display = canCancel ? 'inline-flex':'none';
+  if (!canCancel && !isAdmin && !isOwner && b.date >= todayStr()) {
+    document.getElementById('detailContent').innerHTML += '<div style="margin-top:8px;font-size:11px;color:var(--text-secondary);background:#fffbeb;padding:6px 10px;border-radius:6px;">非本人预约，无法取消（需以 '+esc(b.userName)+' 身份登录）</div>';
+  }
+
+  // Edit button for admin
+  const footer = document.getElementById('detailModalOverlay').querySelector('.modal-footer');
+  let editBtn = footer.querySelector('#detailEditBtn');
+  if (isAdmin) {
+    if (!editBtn) {
+      editBtn = document.createElement('button');
+      editBtn.id = 'detailEditBtn';
+      editBtn.className = 'btn btn-primary btn-sm';
+      editBtn.textContent = '编辑预约';
+      editBtn.onclick = function() { closeModal('detailModalOverlay'); openEditModal(id); };
+      footer.insertBefore(editBtn, footer.firstChild);
+    }
+    editBtn.style.display = 'inline-flex';
+  } else if (editBtn) {
+    editBtn.style.display = 'none';
+  }
+
+  document.getElementById('detailModalOverlay').style.display = 'flex';
+}
+
+function cancelFromDetail() {
+  if (!detailBid) return;
+  cancelBooking(detailBid);
+  closeModal('detailModalOverlay');
+}
+
+function cancelBooking(id) {
+  const b = loadBookings().find(x=>x.id===id);
+  if (!b) return;
+
+  // Ownership check: only booking owner or admin can cancel
+  if (!isAdmin) {
+    if (!currentUser) {
+      toast('请先登录', 'err');
+      doLogout();
+      return;
+    }
+    if (currentUser !== b.userName) {
+      toast('您只能取消自己的预约（登录身份：' + esc(currentUser) + '，预约人：' + esc(b.userName) + '）', 'err');
+      return;
+    }
+  }
+
+  const now = new Date(); const nowTime = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const canCancel = isAdmin || b.date > todayStr() || (b.date===todayStr() && b.startTime > nowTime);
+  if (!canCancel) { toast('无法取消已开始的预约', 'err'); return; }
+  const msg = isAdmin ? '管理员确认取消【'+esc(b.userName)+'】在【'+b.date+' '+b.startTime+'-'+b.endTime+'】的预约？' : '确定取消您在【'+b.date+' '+b.startTime+'-'+b.endTime+'】的预约吗？';
+  if (!confirm(msg)) return;
+  cancelBookingAPI(id).then(r=>{
+    if(!r.ok) { toast('取消失败', 'err'); return; }
+    _bookings = _bookings.filter(bk=>bk.id!==id);
+    toast('预约已取消', 'ok');
+    refreshCurrentView();
+  }).catch(e=>{ toast('取消失败，请重试', 'err'); });
+}
+
+// ═══════════════ EDIT BOOKING (Admin) ═══════════════
+function openEditModal(id) {
+  const b = loadBookings().find(x=>x.id===id);
+  if (!b || !isAdmin) return;
+
+  document.getElementById('editBookingId').value = id;
+  document.getElementById('editModalOverlay').style.display = 'flex';
+
+  // Room selector
+  const sel = document.getElementById('editRoom');
+  sel.innerHTML = '<option value="">请选择直播间</option>' +
+    ROOMS.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  sel.value = b.roomId;
+
+  document.getElementById('editDate').value = b.date;
+  document.getElementById('editDate').min = todayStr();
+  document.getElementById('editDate').max = '2999-12-31';
+  document.getElementById('editName').value = b.userName;
+  document.getElementById('editNote').value = b.note || '';
+
+  populateTimeSelectsEdit();
+  document.getElementById('editStart').value = b.startTime;
+  updateEditEndOptions();
+  document.getElementById('editEnd').value = b.endTime;
+
+  document.getElementById('editConflictWarn').style.display = 'none';
+  document.querySelectorAll('#editModalOverlay .form-group').forEach(g=>g.classList.remove('has-error'));
+}
+
+function submitEditBooking() {
+  if (!isAdmin) { toast('仅管理员可编辑', 'err'); return; }
+
+  document.querySelectorAll('#editModalOverlay .form-group').forEach(g=>g.classList.remove('has-error'));
+  document.getElementById('editConflictWarn').style.display = 'none';
+
+  const id = document.getElementById('editBookingId').value;
+  const roomId = document.getElementById('editRoom').value;
+  const date = document.getElementById('editDate').value;
+  const start = document.getElementById('editStart').value;
+  const end = document.getElementById('editEnd').value;
+  const userName = document.getElementById('editName').value.trim();
+  const note = document.getElementById('editNote').value.trim();
+
+  let err = false;
+  if (!roomId) { document.getElementById('efgRoom').classList.add('has-error'); err=true; }
+  if (!date) { document.getElementById('efgDate').classList.add('has-error'); err=true; }
+  if (!start) { document.getElementById('efgStart').classList.add('has-error'); err=true; }
+  if (!end) { document.getElementById('efgEnd').classList.add('has-error'); err=true; }
+  if (!userName) { document.getElementById('efgName').classList.add('has-error'); err=true; }
+  if (!note) { document.getElementById('efgNote').classList.add('has-error'); err=true; }
+  if (err) return;
+
+  const dur = timeToSlot(end) - timeToSlot(start);
+  if (dur > MAX_BOOKING_HOURS) { alert('单次预约不可超过' + MAX_BOOKING_HOURS + '小时'); return; }
+  if (dur < 1) { alert('预约时长至少1小时'); return; }
+  if (date < todayStr()) { alert('不可预约过去的日期'); return; }
+
+  // Conflict: exclude self
+  const all = loadBookings();
+  const conflict = all.find(b =>
+    b.id !== id && b.roomId === roomId && b.date === date &&
+    !(end <= b.startTime || start >= b.endTime)
+  );
+  if (conflict) {
+    document.getElementById('editConflictWarn').style.display = 'block';
+    return;
+  }
+
+  // Update = delete old + create new
+  deleteBookingAPI(id).then(r=>{
+    if(!r.ok) { toast('更新失败', 'err'); return; }
+    const booking = {
+      id: 'bk_'+Date.now(),
+      roomId, date, startTime:start, endTime:end,
+      userName, note, createdAt: new Date().toISOString()
+    };
+    createBookingAPI(booking).then(r2=>{
+      if(!r2.ok) { toast('更新失败', 'err'); return; }
+      booking.id = r2.recordId || booking.id;
+      _bookings = _bookings.filter(bk=>bk.id!==id);
+      _bookings.push(booking);
+      closeModal('editModalOverlay');
+      toast('预约已更新', 'ok');
+      refreshCurrentView();
+    });
+  }).catch(e=>{ toast('更新失败，请重试', 'err'); });
+
+  closeModal('editModalOverlay');
+  toast('预约已更新', 'ok');
+  refreshCurrentView();
+}
+
+// ═══════════════ TEMP AUTH MANAGEMENT ═══════════════
+function openTempAuthModal() {
+  if (!isAdmin) return;
+  document.getElementById('authCodeModalOverlay').style.display = 'flex';
+  renderTempAuthList();
+  renderUserList();
+  // Populate user dropdown
+  const sel = document.getElementById('tempAuthUserSelect');
+  const users = getUsers();
+  sel.innerHTML = '<option value="">选择用户...</option>' +
+    Object.keys(users).map(n => `<option value="${n.replace(/"/g,'&quot;')}">${esc(n)}</option>`).join('');
+}
+
+function doGrantTempAuth() {
+  if (!isAdmin) return;
+  const sel = document.getElementById('tempAuthUserSelect');
+  const userName = sel.value;
+  if (!userName) { toast('请选择用户', 'err'); return; }
+  grantTempAuthAPI(userName).then(r => {
+    if (!r.ok) { toast(r.error || '授权失败', 'err'); return; }
+    toast('已授予 ' + userName + ' 临时权限（1小时有效）', 'ok');
+    _syncAll().then(() => { renderTempAuthList(); renderUserList(); });
+  }).catch(() => toast('授权失败', 'err'));
+}
+
+function doRevokeTempAuth(userName) {
+  if (!isAdmin) return;
+  if (!confirm('确定撤销 ' + userName + ' 的临时权限吗？')) return;
+  revokeTempAuthAPI(userName).then(r => {
+    if (!r.ok) { toast('撤销失败', 'err'); return; }
+    toast('已撤销 ' + userName + ' 的临时权限', 'ok');
+    _syncAll().then(() => renderTempAuthList());
+  }).catch(() => toast('撤销失败', 'err'));
+}
+
+function renderTempAuthList() {
+  const auths = loadTempAuths();
+  const now = new Date();
+  const active = [];   // 未过期
+  const expired = [];  // 已过期
+  auths.forEach(a => {
+    const expiresAt = new Date(new Date(a.grantedAt).getTime() + 60 * 60 * 1000);
+    if (now <= expiresAt) { a._remains = Math.max(0, Math.floor((expiresAt - now) / 1000)); active.push(a); }
+    else { expired.push(a); }
+  });
+
+  function fmt(t) { return t ? new Date(t).toLocaleString('zh-CN') : '-'; }
+  function remainStr(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m > 0 ? `剩余${m}分${sec}秒` : `剩余${sec}秒`;
+  }
+
+  const container = document.getElementById('tempAuthList');
+  if (!auths.length) {
+    container.innerHTML = '<div class="empty-state"><p>暂无临时授权记录</p></div>';
+    return;
+  }
+
+  let html = '';
+  if (active.length) {
+    html += '<div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--success);">✅ 有效授权（'+active.length+'个）</div>';
+    html += '<table class="auth-code-table"><thead><tr><th>用户</th><th>授权时间</th><th>有效期</th><th>授权人</th><th>操作</th></tr></thead><tbody>';
+    active.forEach(a => {
+      html += `<tr>
+        <td><strong>${esc(a.userName)}</strong></td>
+        <td style="font-size:12px;color:var(--text-secondary);">${fmt(a.grantedAt)}</td>
+        <td style="font-size:12px;color:#e67e22;">${remainStr(a._remains)}</td>
+        <td style="font-size:12px;color:var(--text-secondary);">${esc(a.grantedBy || '-')}</td>
+        <td><button class="btn btn-danger btn-xs" onclick="doRevokeTempAuth('${esc(a.userName)}')">撤销</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+  }
+
+  if (expired.length) {
+    html += '<div style="font-weight:600;font-size:13px;margin:16px 0 8px;color:var(--text-secondary);">⏰ 已过期（'+expired.length+'个）</div>';
+    html += '<table class="auth-code-table"><thead><tr><th>用户</th><th>授权时间</th><th>授权人</th></tr></thead><tbody>';
+    expired.forEach(a => {
+      html += `<tr>
+        <td style="opacity:.5;">${esc(a.userName)}</td>
+        <td style="font-size:12px;color:var(--text-secondary);">${fmt(a.grantedAt)}</td>
+        <td style="font-size:12px;color:var(--text-secondary);">${esc(a.grantedBy || '-')}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+  }
+
+  container.innerHTML = html;
+}
+
+// ═══════════════ MY BOOKINGS ═══════════════
+function renderMyBookings() {
+  const filter = (document.getElementById('myNameFilter')?.value || '').trim();
+  const monthStart = monthStartStr();
+  document.getElementById('bookingRangeLabel').textContent = '查询范围：'+monthStart+' 至今，共 '+loadBookings().filter(b=>b.date>=monthStart).length+' 条';
+
+  let bookings = loadBookings()
+    .filter(b => b.date >= monthStart) // 仅当月1号起
+    .sort((a,b)=>{
+      if (a.date!==b.date) return a.date.localeCompare(b.date);
+      return a.startTime.localeCompare(b.startTime);
+    });
+  if (filter) {
+    bookings = bookings.filter(b => b.userName.includes(filter));
+  }
+
+  const now = new Date(); const todayS = todayStr();
+  const nowTime = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+
+  if (!bookings.length) {
+    document.getElementById('myBookingsContent').innerHTML =
+      '<div class="empty-state"><div class="icon">&#x1F4CB;</div><p>暂无预约记录</p></div>';
+    return;
+  }
+
+  const rows = bookings.map(b=>{
+    const room = ROOMS.find(r=>r.id===b.roomId||r.name===b.roomName);
+    let tag='tag-past',label='已结束';
+    if (b.date > todayS) { tag='tag-upcoming'; label='即将开始'; }
+    else if (b.date===todayS) {
+      if (b.endTime <= nowTime) { tag='tag-past'; label='已结束'; }
+      else if (b.startTime <= nowTime) { tag='tag-ongoing'; label='进行中'; }
+      else { tag='tag-upcoming'; label='即将开始'; }
+    }
+    const isOwner = currentUser && currentUser === b.userName;
+    const canCancel = isAdmin || (isOwner && (b.date > todayS || (b.date===todayS && b.startTime > nowTime)));
+    const canEdit = isAdmin;
+    return `<tr>
+      <td><span class="legend-dot" style="background:${room?room.color:'#999'};display:inline-block;vertical-align:middle;"></span> ${room?room.name:'未知'}</td>
+      <td>${b.date}</td>
+      <td>${b.startTime} - ${b.endTime}</td>
+      <td><strong>${esc(b.userName)}</strong></td>
+      <td>${b.note ? esc(b.note) : '-'}</td>
+      <td><span class="tag ${tag}">${label}</span></td>
+      <td>
+        <button class="btn btn-outline btn-xs" onclick="showDetail('${b.id}')">详情</button>
+        ${canEdit ? `<button class="btn btn-primary btn-xs" style="margin-left:4px" onclick="openEditModal('${b.id}')">编辑</button>` : ''}
+        ${canCancel ? `<button class="btn btn-danger btn-xs" style="margin-left:4px" onclick="cancelBooking('${b.id}')">取消</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('myBookingsContent').innerHTML = `
+    <table class="booking-table" style="width:100%">
+      <thead><tr>
+        <th>直播间</th><th>日期</th><th>时间</th><th>使用人</th><th>用途</th><th>状态</th><th>操作</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ═══════════════ MODAL UTILS ═══════════════
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) e.target.style.display = 'none'; });
+
+// ═══════════════ TOAST ═══════════════
+function toast(msg, type) {
+  const old = document.querySelector('.toast'); if (old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'toast '+type; el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1200);
+}
+
+function esc(s) {
+  const d=document.createElement('div'); d.textContent=s; return d.innerHTML;
+}
+
+function updateStats() {
+  try {
+  const all = loadBookings();
+  const monthStart = monthStartStr();
+  const todayS = todayStr();
+  const monthBookings = all.filter(b => b.date >= monthStart);
+  const todayBookings = all.filter(b => b.date === todayS);
+  const now = new Date();
+  const nowTime = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const upcoming = all.filter(b => b.date > todayS || (b.date === todayS && b.startTime > nowTime));
+  document.getElementById('statTotal').textContent = monthBookings.length;
+  document.getElementById('statToday').textContent = todayBookings.length;
+  document.getElementById('statUpcoming').textContent = upcoming.length;
+  } catch(e) { console.error('updateStats error:', e); }
+}
+
+// ═══════════════ INIT ═══════════════
+async function boot() {
+  // 1. Load all shared data from server
+  await _syncAll();
+
+  // 2. Init admins (uses server data now)
+  initAdmins();
+  updateHeader();
+
+  // 3. Check auto-login
+  const session = getSession();
+  if (!tryAutoLogin()) {
+    document.getElementById('loginOverlay').style.display = 'flex';
+    if (session && session.name) {
+      document.getElementById('loginName').value = session.name;
+      document.getElementById('loginTitle').textContent = '欢迎回来';
+      document.getElementById('loginSub').textContent = '请输入密码重新登录';
+      document.getElementById('loginBtn').textContent = '确认进入';
+    } else {
+      document.getElementById('loginTitle').textContent = '首次使用';
+      document.getElementById('loginSub').textContent = '请设置您的姓名和密码';
+      document.getElementById('loginBtn').textContent = '登录/注册';
+    }
+  } else {
+    document.getElementById('loginOverlay').style.display = 'none';
+    updateCurrentUserUI();
+  }
+
+  renderMonth();
+  updateStats();
+
+  // 4. Auto-refresh from server every 10 seconds (keeps all browsers in sync!)
+  setInterval(async () => { await _syncAll(); refreshCurrentView(); }, 10000);
+}
+
+boot();
+</script>
+</body>
+</html>
