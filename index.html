@@ -1335,25 +1335,31 @@ function renderDayTimeline() {
     '<thead>'+hdr+'</thead><tbody>'+body+'</tbody>';
 
   // Book button
-  const inWin = isWithinWindow(selectedDay, false);
   const btn = document.getElementById('dayBookBtn');
-  btn.onclick = openBookModal;
   if (selectedDay < todayStr()) {
     btn.textContent = '过去日期不可预约';
     btn.style.opacity = '.5';
     btn.onclick = null;
-  } else if (!inWin && !isAdmin) {
-    btn.textContent = '+ 预约（需临时授权）';
-    btn.style.opacity = '1';
   } else {
     btn.textContent = '+ 预约直播间';
     btn.style.opacity = '1';
+    const inWinBtn = isWithinWindow(selectedDay, false);
+    if (!inWinBtn && !isAdmin) {
+      btn.onclick = function() { alert('仅可预约未来一周内的直播间，每日10:00开放新一天的预约。如有特殊情况请联系HRBP'); };
+    } else {
+      btn.onclick = openBookModal;
+    }
   }
   } catch(e) { console.error('renderDayTimeline error:', e); }
 }
 
 function quickBook(roomId, date, start, end) {
   if (date < todayStr()) { toast('已过去的日期不可预约', 'err'); return; }
+  // 普通用户选一周外日期时弹出提示
+  if (!isAdmin && !isWithinWindow(date, false) && date >= todayStr()) {
+    alert('仅可预约未来一周内的直播间，每日10:00开放新一天的预约。如有特殊情况请联系HRBP');
+    return;
+  }
   var pd = parseDate(date);
   bookCalMonth = { y: pd.getFullYear(), m: pd.getMonth() };
   openBookModal();
@@ -1401,7 +1407,7 @@ function toggleAuthCodeField(dateVal) {
   }
   const inWin = isWithinWindow(dateVal, false);
   if (!inWin && dateVal >= todayStr()) {
-    hint.textContent = '超出可预约范围（当天起一周内），如需预约请联系HRBP获取临时授权';
+    hint.textContent = '超出可预约范围（当天起一周内），如需预约请联系HRBP';
   } else {
     hint.textContent = '可预约范围：当天起一周内（' + maxBookableDate() + ' 及之前），每日 10:00 开放新一天';
   }
@@ -1444,15 +1450,13 @@ function renderBookCalendar(preselect) {
     const isToday = ds === todayDate;
     const isSelected = ds === preselect;
     const isPast = ds < todayDate;
-    const inWindow = ds <= maxDate;
 
     let cls = 'book-cal-cell';
     if (isSelected) cls += ' selected';
     if (isToday) cls += ' today';
     if (isPast) cls += ' past';
-    else if (!inWindow && !isAdmin) cls += ' locked';
 
-    const click = (isPast || (!inWindow && !isAdmin)) ? '' : `onclick="selectBookCalDate('${ds}')"`;
+    const click = isPast ? '' : `onclick="selectBookCalDate('${ds}')"`;
     html += `<div class="${cls}" ${click}>${day}</div>`;
   }
 
@@ -1464,9 +1468,15 @@ function selectBookCalDate(ds) {
   // Update grid selection visual
   const grid = document.getElementById('bookCalGrid');
   grid.querySelectorAll('.book-cal-cell.selected').forEach(el => el.classList.remove('selected'));
-  const cells = grid.querySelectorAll('.book-cal-cell:not(.other-month):not(.past):not(.locked)');
+  const cells = grid.querySelectorAll('.book-cal-cell:not(.other-month):not(.past)');
   cells.forEach(c => { if (c.textContent == parseDate(ds).getDate()) c.classList.add('selected'); });
   document.getElementById('fgDate').classList.remove('has-error');
+  
+  // 普通用户选一周外日期时立即弹出提示
+  if (!isAdmin && !isWithinWindow(ds, false) && ds >= todayStr()) {
+    alert('仅可预约未来一周内的直播间，每日10:00开放新一天的预约。如有特殊情况请联系HRBP');
+  }
+  
   toggleAuthCodeField(ds);
 }
 
@@ -1541,7 +1551,7 @@ function submitBooking() {
   const inWin = isWithinWindow(date, false);
   if (!inWin && date >= todayStr() && !isAdmin) {
     if (!hasTempAuth(userName)) {
-      alert('仅可预约未来一周内的直播间\n\n每日 10:00 开放新一天的预约\n如有特殊情况请联系 HRBP 获取临时授权');
+      alert('仅可预约未来一周内的直播间，每日10:00开放新一天的预约。如有特殊情况请联系HRBP');
       return;
     }
   }
