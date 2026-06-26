@@ -1031,13 +1031,13 @@ function monthStartStr() {
   const now = new Date();
   return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
 }
-function maxBookableDate() { const d=new Date(); if(d.getHours()<10)d.setDate(d.getDate()-1); d.setDate(d.getDate()+BOOKING_WINDOW_DAYS-1); return fmtDate(d); }
+function maxBookableDate() { const d=new Date(); if(d.getHours()<10||(d.getHours()===10&&d.getMinutes()<30))d.setDate(d.getDate()-1); d.setDate(d.getDate()+BOOKING_WINDOW_DAYS-1); return fmtDate(d); }
 function isWithinWindow(dateStr, adminOverride) {
   if (adminOverride) return true;
   const d = parseDate(dateStr);
   const now = new Date();
   const effectiveToday = new Date(); effectiveToday.setHours(0,0,0,0);
-  if (now.getHours() < 10) effectiveToday.setDate(effectiveToday.getDate() - 1);
+  if (now.getHours()<10 || (now.getHours()===10 && now.getMinutes()<30)) effectiveToday.setDate(effectiveToday.getDate() - 1);
   const max = new Date(effectiveToday); max.setDate(max.getDate()+BOOKING_WINDOW_DAYS-1);
   const target = new Date(d); target.setHours(0,0,0,0);
   return target >= effectiveToday && target <= max;
@@ -1345,7 +1345,7 @@ function renderDayTimeline() {
     btn.style.opacity = '1';
     const inWinBtn = isWithinWindow(selectedDay, false);
     if (!inWinBtn && !isAdmin) {
-      btn.onclick = function() { alert('仅可预约未来一周内的直播间，每日10:00开放新一天的预约。如有特殊情况请联系HRBP'); };
+      btn.onclick = function() { alert('仅可预约未来一周内的直播间\n每日 10:30 开放新一天的预约\n如有特殊情况请联系HRBP'); };
     } else {
       btn.onclick = openBookModal;
     }
@@ -1357,7 +1357,7 @@ function quickBook(roomId, date, start, end) {
   if (date < todayStr()) { toast('已过去的日期不可预约', 'err'); return; }
   // 普通用户选一周外日期时弹出提示
   if (!isAdmin && !isWithinWindow(date, false) && date >= todayStr()) {
-    alert('仅可预约未来一周内的直播间，每日10:00开放新一天的预约。如有特殊情况请联系HRBP');
+    alert('仅可预约未来一周内的直播间\n每日 10:30 开放新一天的预约\n如有特殊情况请联系HRBP');
     return;
   }
   var pd = parseDate(date);
@@ -1409,7 +1409,7 @@ function toggleAuthCodeField(dateVal) {
   if (!inWin && dateVal >= todayStr()) {
     hint.textContent = '超出可预约范围（当天起一周内），如需预约请联系HRBP';
   } else {
-    hint.textContent = '可预约范围：当天起一周内（' + maxBookableDate() + ' 及之前），每日 10:00 开放新一天';
+    hint.textContent = '可预约范围：当天起一周内（' + maxBookableDate() + ' 及之前），每日 10:30 开放新一天';
   }
 }
 
@@ -1474,7 +1474,7 @@ function selectBookCalDate(ds) {
   
   // 普通用户选一周外日期时立即弹出提示
   if (!isAdmin && !isWithinWindow(ds, false) && ds >= todayStr()) {
-    alert('仅可预约未来一周内的直播间，每日10:00开放新一天的预约。如有特殊情况请联系HRBP');
+    alert('仅可预约未来一周内的直播间\n每日 10:30 开放新一天的预约\n如有特殊情况请联系HRBP');
   }
   
   toggleAuthCodeField(ds);
@@ -1551,7 +1551,7 @@ function submitBooking() {
   const inWin = isWithinWindow(date, false);
   if (!inWin && date >= todayStr() && !isAdmin) {
     if (!hasTempAuth(userName)) {
-      alert('仅可预约未来一周内的直播间，每日10:00开放新一天的预约。如有特殊情况请联系HRBP');
+      alert('仅可预约未来一周内的直播间\n每日 10:30 开放新一天的预约\n如有特殊情况请联系HRBP');
       return;
     }
   }
