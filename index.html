@@ -245,6 +245,8 @@ body {
 .book-cal-cell.other-month:hover { border-color:transparent; background:transparent; box-shadow:none; }
 .book-cal-cell.locked { opacity:.35; cursor:not-allowed; pointer-events:none; background:#f8f8f8; }
 .book-cal-cell.past { opacity:.3; cursor:not-allowed; pointer-events:none; background:transparent; }
+.book-cal-cell.out-of-range { color:#c0c0c0; cursor:pointer; background:#f7f7f7; border-color:#e8e8e8; }
+.book-cal-cell.out-of-range:hover { border-color:#d0d0d0; background:#f0f0f0; box-shadow:none; }
 .mini-day {
   min-width:38px; padding:5px 4px; text-align:center; border-radius:8px;
   cursor:pointer; font-size:11px; border:2px solid transparent;
@@ -1497,10 +1499,13 @@ function renderBookCalendar(preselect) {
     const isSelected = ds === preselect;
     const isPast = ds < todayDate;
 
+    const isOutOfRange = !isPast && !isAdmin && !isWithinWindow(ds, false);
+
     let cls = 'book-cal-cell';
     if (isSelected) cls += ' selected';
     if (isToday) cls += ' today';
     if (isPast) cls += ' past';
+    else if (isOutOfRange) cls += ' out-of-range';
 
     const click = isPast ? '' : `onclick="selectBookCalDate('${ds}')"`;
     html += `<div class="${cls}" ${click}>${day}</div>`;
