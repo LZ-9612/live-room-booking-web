@@ -1626,10 +1626,12 @@ function submitBooking() {
 
   // Conflict detection — find ALL overlapping bookings for the same room & date
   const all = loadBookings();
-  const conflicts = all.filter(b =>
-    b.roomId === roomId && b.date === date &&
-    !(end <= b.startTime || start >= b.endTime)
-  );
+  const conflicts = all.filter(b => {
+    if (b.roomId !== roomId || b.date !== date) return false;
+    const e = end.substring(0, 5), s = start.substring(0, 5);
+    const be = b.endTime.substring(0, 5), bs = b.startTime.substring(0, 5);
+    return !(e <= bs || s >= be);
+  });
   if (conflicts.length > 0) {
     const listEl = document.getElementById('conflictList');
     listEl.innerHTML = conflicts.map(c => {
@@ -1798,10 +1800,12 @@ function submitEditBooking() {
 
   // Conflict: exclude self
   const all = loadBookings();
-  const conflict = all.find(b =>
-    b.id !== id && b.roomId === roomId && b.date === date &&
-    !(end <= b.startTime || start >= b.endTime)
-  );
+  const conflict = all.find(b => {
+    if (b.id === id || b.roomId !== roomId || b.date !== date) return false;
+    const e = end.substring(0, 5), s = start.substring(0, 5);
+    const be = b.endTime.substring(0, 5), bs = b.startTime.substring(0, 5);
+    return !(e <= bs || s >= be);
+  });
   if (conflict) {
     document.getElementById('editConflictWarn').style.display = 'block';
     return;
