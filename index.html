@@ -420,6 +420,11 @@ body {
   align-items:center; justify-content:center; margin-left:2px; transition:all .15s;
 }
 .current-user-badge .logout-x:hover { background:#e8e0ff; color:var(--danger); }
+.current-user-badge .change-pwd-link {
+  font-size:12px; color:var(--text-secondary); cursor:pointer; margin:0 2px; text-decoration:underline;
+  transition:color .15s; white-space:nowrap;
+}
+.current-user-badge .change-pwd-link:hover { color:var(--primary); }
 </style>
 </head>
 <body>
@@ -433,6 +438,7 @@ body {
     <span class="header-now" id="headerNow"></span>
     <div class="current-user-badge" id="currentUserBadge" style="display:none;" title="当前登录用户">
       <span id="currentUserDisplay"></span>
+      <span class="change-pwd-link" onclick="openChangePwdModal()" title="修改密码">修改密码</span>
       <button class="logout-x" onclick="doLogout()" title="退出登录">&times;</button>
     </div>
     <button class="auth-code-btn" id="authCodeBtn" onclick="openTempAuthModal()" style="display:none;">&#x1F511; 临时授权管理</button>
@@ -662,6 +668,35 @@ body {
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline btn-sm" onclick="closeModal('authCodeModalOverlay')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ──────── Change Password Modal ──────── -->
+<div class="modal-overlay" id="changePwdModalOverlay" style="display:none;">
+  <div class="modal" style="width:380px;">
+    <div class="modal-header">
+      <h3>&#x1F512; 修改密码</h3>
+      <button class="modal-close" onclick="closeModal('changePwdModalOverlay')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>旧密码</label>
+        <input type="password" class="form-input" id="oldPwd" placeholder="请输入当前密码" maxlength="6">
+      </div>
+      <div class="form-group">
+        <label>新密码（6位数字）</label>
+        <input type="password" class="form-input" id="newPwd" placeholder="请设置新密码" maxlength="6">
+      </div>
+      <div class="form-group">
+        <label>确认新密码</label>
+        <input type="password" class="form-input" id="confirmPwd" placeholder="请再次输入新密码" maxlength="6">
+      </div>
+      <div class="login-error" id="changePwdError" style="text-align:center;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('changePwdModalOverlay')">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="doChangePwd()">确认修改</button>
     </div>
   </div>
 </div>
@@ -905,6 +940,42 @@ function doLogin() {
 
   document.getElementById('loginOverlay').style.display = 'none';
   refreshCurrentView();
+}
+
+// ── 修改密码 ──
+function openChangePwdModal() {
+  document.getElementById('oldPwd').value = '';
+  document.getElementById('newPwd').value = '';
+  document.getElementById('confirmPwd').value = '';
+  document.getElementById('changePwdError').style.display = 'none';
+  document.getElementById('changePwdModalOverlay').style.display = 'flex';
+}
+
+function doChangePwd() {
+  const oldPwd = document.getElementById('oldPwd').value.trim();
+  const newPwd = document.getElementById('newPwd').value.trim();
+  const confirmPwd = document.getElementById('confirmPwd').value.trim();
+  const errEl = document.getElementById('changePwdError');
+
+  if (!oldPwd) { errEl.textContent = '请输入旧密码'; errEl.style.display = 'block'; return; }
+  if (!newPwd || newPwd.length < 6) { errEl.textContent = '新密码必须为6位数字'; errEl.style.display = 'block'; return; }
+  if (newPwd !== confirmPwd) { errEl.textContent = '两次输入的新密码不一致'; errEl.style.display = 'block'; return; }
+
+  // 验证旧密码
+  const users = getUsers();
+  const oldHash = hashPassword(oldPwd);
+  if (users[currentUser] !== oldHash) {
+    errEl.textContent = '旧密码不正确';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // 更新密码
+  const newHash = hashPassword(newPwd);
+  users[currentUser] = newHash;
+  saveUsers(users);
+  toast('密码修改成功', 'ok');
+  closeModal('changePwdModalOverlay');
 }
 
 function doLogout() {
