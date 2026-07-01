@@ -806,7 +806,20 @@ function hashPassword(pw) {
 }
 
 function getUsers() { return _users; }
-function saveUsers(u) { const cleaned = fixUserNames(u); _users = cleaned; fetch(API_BASE + '/api/users',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(cleaned)}).catch(e=>console.error(e)); }
+// 安全写入：先合并最新服务器数据，再 PUT，防止用户表被覆盖丢失
+async function saveUsers(u) {
+  // 1. 先从服务器取最新完整用户列表
+  let serverUsers = {};
+  try {
+    const res = await fetch(API_BASE + '/api/users');
+    serverUsers = await res.json();
+  } catch(e) { console.warn('saveUsers: 无法获取服务器用户列表，将只写入当前数据', e); }
+  // 2. 合并：服务器数据为基础，本次修改覆盖
+  const merged = Object.assign({}, serverUsers, u);
+  const cleaned = fixUserNames(merged);
+  _users = cleaned;
+  fetch(API_BASE + '/api/users', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(cleaned)}).catch(e=>console.error(e));
+}
 
 // Session stays in localStorage (per-browser auto-login; 30-day expiry is client-side concern)
 function getSession() {
