@@ -751,7 +751,7 @@ async function _syncAll() {
   try {
     const [bk, us, ta, ad] = await Promise.all([
       fetch(API_BASE + '/api/bookings').then(r=>r.json()),
-      fetch(API_BASE + '/api/users').then(r=>r.json()),
+      fetch(API_BASE + '/api/users').then(r=>r.json()).then(d=>d.users||d),
       fetch(API_BASE + '/api/temp-auths').then(r=>r.json()),
       fetch(API_BASE + '/api/admins').then(r=>r.json())
     ]);
@@ -847,7 +847,7 @@ async function saveUsers(u) {
   let serverUsers = {};
   try {
     const res = await fetch(API_BASE + '/api/users');
-    serverUsers = await res.json();
+    serverUsers = (await res.json()).users || {};
   } catch(e) { console.warn('saveUsers: 无法获取服务器用户列表，将只写入当前数据', e); }
   // 2. 合并：服务器数据为基础，本次修改覆盖
   const merged = Object.assign({}, serverUsers, u);
