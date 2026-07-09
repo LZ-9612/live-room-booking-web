@@ -760,13 +760,10 @@ async function _syncAll() {
 }
 
 // 修复数据库编码损坏导致的用户名乱码
+// 注意：服务端 GET /api/users 已做 hash→name 映射，前端无需重复处理
+// 否则当多个用户使用相同密码（如默认密码 000000）时，会错误合并用户
 function fixUserNames(users) {
-  const hashToName = { h_715gzb: '刘展', h_tprlw7: '勾霜' };
-  const fixed = {};
-  for (const [name, hash] of Object.entries(users)) {
-    fixed[hashToName[hash] || name] = hash;
-  }
-  return fixed;
+  return users;
 }
 
 function loadBookings() { return _bookings; }
