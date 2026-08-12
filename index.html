@@ -1479,7 +1479,7 @@ function renderDayTimeline() {
     btn.textContent = '+ 预约直播间';
     btn.style.opacity = '1';
     const inWinBtn = isWithinWindow(selectedDay, false);
-    if (!inWinBtn && !isAdmin) {
+    if (!inWinBtn && !isAdmin && !hasTempAuth(currentUser)) {
       btn.onclick = function() { alert('仅可预约当周和下周的直播间\n每周一上午11:00开放新一周预约\n如有特殊情况请联系HRBP'); };
     } else {
       btn.onclick = openBookModal;
@@ -1490,8 +1490,8 @@ function renderDayTimeline() {
 
 function quickBook(roomId, date, start, end) {
   if (date < todayStr()) { toast('已过去的日期不可预约', 'err'); return; }
-  // 普通用户选一周外日期时弹出提示
-  if (!isAdmin && !isWithinWindow(date, false) && date >= todayStr()) {
+  // 普通用户选一周外日期时弹出提示（有临时授权则放行）
+  if (!isAdmin && !isWithinWindow(date, false) && date >= todayStr() && !hasTempAuth(currentUser)) {
     alert('仅可预约当周和下周的直播间\n每周一上午11:00开放新一周预约\n如有特殊情况请联系HRBP');
     return;
   }
@@ -1538,6 +1538,10 @@ function toggleAuthCodeField(dateVal) {
   const hint = document.getElementById('dateHint');
   if (isAdmin) {
     hint.textContent = '管理员可预约任意未来日期，不受一周限制';
+    return;
+  }
+  if (hasTempAuth(currentUser)) {
+    hint.textContent = '您有临时授权，可预约窗口外日期（1小时内有效）';
     return;
   }
   const inWin = isWithinWindow(dateVal, false);
@@ -1610,8 +1614,8 @@ function selectBookCalDate(ds) {
   cells.forEach(c => { if (c.textContent == parseDate(ds).getDate()) c.classList.add('selected'); });
   document.getElementById('fgDate').classList.remove('has-error');
   
-  // 普通用户选一周外日期时立即弹出提示
-  if (!isAdmin && !isWithinWindow(ds, false) && ds >= todayStr()) {
+  // 普通用户选一周外日期时立即弹出提示（有临时授权则放行）
+  if (!isAdmin && !isWithinWindow(ds, false) && ds >= todayStr() && !hasTempAuth(currentUser)) {
     alert('仅可预约当周和下周的直播间\n每周一上午11:00开放新一周预约\n如有特殊情况请联系HRBP');
   }
   
