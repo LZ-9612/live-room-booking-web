@@ -755,7 +755,13 @@ async function _syncAll() {
       fetch(API_BASE + '/api/temp-auths').then(r=>r.json()),
       fetch(API_BASE + '/api/admins').then(r=>r.json())
     ]);
-    _bookings = bk || []; _users = fixUserNames(us || {}); _tempAuths = ta || []; _admins = ad;
+    _bookings = bk || []; _users = fixUserNames(us || {}); _admins = ad;
+    // 规范化临时授权字段：后端返回 user_name/granted_at/granted_by（蛇形），前端统一用 userName/grantedAt/grantedBy（驼峰）
+    _tempAuths = (ta || []).map(t => ({
+      userName: t.userName || t.user_name,
+      grantedBy: t.grantedBy || t.granted_by,
+      grantedAt: t.grantedAt || t.granted_at
+    }));
   } catch(e) { console.error('sync error:', e); }
 }
 
