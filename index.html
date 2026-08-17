@@ -588,6 +588,26 @@ body {
   </div>
 </div>
 
+<!-- ──────── 预约成功 · 直播间密码 Modal ──────── -->
+<div class="modal-overlay" id="pwdModalOverlay" style="display:none;">
+  <div class="modal" style="width:380px;">
+    <div class="modal-header">
+      <h3>预约成功</h3>
+      <button class="modal-close" onclick="closeModal('pwdModalOverlay')">&times;</button>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:20px 24px;">
+      <div id="pwdRoomName" style="font-size:16px;font-weight:700;margin-bottom:4px;"></div>
+      <div id="pwdTime" style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;"></div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">直播间密码</div>
+      <div id="pwdValue" onclick="copyPwd()" style="font-size:30px;font-weight:800;letter-spacing:4px;background:var(--bg);border:2px dashed #f59e0b;border-radius:10px;padding:12px 16px;cursor:pointer;user-select:all;" title="点击复制">---</div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:8px;">点击密码即可复制，请妥善保管</div>
+    </div>
+    <div class="modal-footer" style="justify-content:center;">
+      <button class="btn btn-primary" onclick="closeModal('pwdModalOverlay')">我知道了</button>
+    </div>
+  </div>
+</div>
+
 <!-- ──────── Detail Modal ──────── -->
 <div class="modal-overlay" id="detailModalOverlay" style="display:none;">
   <div class="modal" style="width:400px;">
@@ -745,6 +765,15 @@ const ROOMS = [
   { id:'r5', name:'3楼-55', color:'#ec4899' },
   { id:'r6', name:'3楼-56', color:'#8b5cf6' },
 ];
+
+// 直播间密码（预约成功后展示给预约人）
+const ROOM_PASSWORDS = {
+  '3楼-48': '4789#',
+  '3楼-57': '8954#',
+  '3楼-55': '2545#',
+  '3楼-56': '6989#',
+  '7楼-13': '1313#',
+};
 
 const START_HOUR = 9;
 const END_HOUR = 23; // exclusive → slots: 9:00-23:00 (last slot 22:00-23:00)
@@ -1763,6 +1792,9 @@ function submitBooking() {
     closeModal('bookModalOverlay');
     toast('预约成功！', 'ok');
     refreshCurrentView();
+    // 预约成功后展示对应直播间密码
+    const room = ROOMS.find(r=>r.id===booking.roomId||r.name===booking.roomName||r.name===booking.roomId);
+    showRoomPassword(room ? room.name : (booking.roomName || booking.roomId), booking.date, booking.startTime+'-'+booking.endTime);
   }).catch(e=>{ toast('预约失败，请重试', 'err'); });
 }
 
@@ -1783,6 +1815,7 @@ function showDetail(id) {
       <div><span style="color:var(--text-secondary)">时间：</span>${b.startTime} - ${b.endTime}</div>
       <div><span style="color:var(--text-secondary)">使用人：</span>${esc(b.userName)}</div>
       ${b.note ? `<div><span style="color:var(--text-secondary)">用途：</span>${esc(b.note)}</div>`:''}
+      ${room && ROOM_PASSWORDS[room.name] ? `<div><span style="color:var(--text-secondary)">直播间密码：</span><span style="font-weight:700;color:#f59e0b;letter-spacing:1px;font-size:15px;">${esc(ROOM_PASSWORDS[room.name])}</span> <span style="font-size:11px;color:var(--text-secondary);cursor:pointer;" onclick="copyPwdText('${esc(ROOM_PASSWORDS[room.name])}')">📋 复制</span></div>`:''}
     </div>`;
   document.getElementById('detailCancelBtn').style.display = canCancel ? 'inline-flex':'none';
   if (!canCancel && !isAdmin && !isOwner && b.date >= todayStr()) {
@@ -2094,6 +2127,33 @@ function renderMyBookings() {
 // ═══════════════ MODAL UTILS ═══════════════
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) e.target.style.display = 'none'; });
+
+// ═══════════════ ROOM PASSWORD ═══════════════
+function showRoomPassword(roomName, date, time) {
+  const pwd = ROOM_PASSWORDS[roomName] || ROOM_PASSWORDS[Object.keys(ROOM_PASSWORDS).find(k=>k.includes(roomName))] || '';
+  document.getElementById('pwdRoomName').textContent = '直播间：' + roomName;
+  document.getElementById('pwdTime').textContent = (date||'') + (time ? '  ' + time : '');
+  document.getElementById('pwdValue').textContent = pwd || '无';
+  document.getElementById('pwdModalOverlay').style.display = 'flex';
+}
+function copyPwd() {
+  const v = document.getElementById('pwdValue').textContent;
+  if (!v || v === '无') return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(v).then(()=>toast('密码已复制','ok')).catch(()=>toast('复制失败，请手动选择','err'));
+  } else {
+    const ta = document.createElement('textarea'); ta.value = v; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta); toast('密码已复制','ok');
+  }
+}
+function copyPwdText(v) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(v).then(()=>toast('密码已复制','ok')).catch(()=>toast('复制失败，请手动选择','err'));
+  } else {
+    const ta = document.createElement('textarea'); ta.value = v; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta); toast('密码已复制','ok');
+  }
+}
 
 // ═══════════════ TOAST ═══════════════
 function toast(msg, type) {
