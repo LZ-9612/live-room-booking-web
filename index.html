@@ -1480,10 +1480,16 @@ function renderDayTimeline() {
         for (let rs=s+1; rs<s+span && rs<TOTAL_SLOTS; rs++) {
           rowspanCovered[rs].add(r.id);
         }
+        // 点击交互：管理员=查看详情；普通用户点自己的预约=显示密码，点别人=无反应
+        const bkOwner = currentUser && currentUser === bk.userName;
+        const bkClick = isAdmin
+          ? `showDetail('${bk.id}')`
+          : (bkOwner ? `showRoomPasswordForBooking('${bk.id}')` : '');
+        const bkCursor = (isAdmin || bkOwner) ? 'pointer' : 'default';
         body += `<td rowspan="${span}" style="vertical-align:top;padding:2px 3px;">
-          <div class="booking-filled" style="background:${r.color}18;border-left-color:${r.color};min-height:${44*span-4}px;"
-               onclick="showDetail('${bk.id}')">
-            <button class="cancel-btn-card" onclick="event.stopPropagation();cancelBooking('${bk.id}')" title="取消预约">取消</button>
+          <div class="booking-filled" style="background:${r.color}18;border-left-color:${r.color};min-height:${44*span-4}px;cursor:${bkCursor};"
+               onclick="${bkClick}">
+            ${(isAdmin || bkOwner) ? `<button class="cancel-btn-card" onclick="event.stopPropagation();cancelBooking('${bk.id}')" title="取消预约">取消</button>` : ''}
             <strong>${esc(bk.userName)}</strong>
             <span style="font-size:10px;opacity:.7">${bk.startTime}-${bk.endTime}</span>
             ${bk.note ? `<span style="font-size:10px;color:var(--text-secondary);max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(bk.note)}">${esc(bk.note)}</span>` : ''}
@@ -2075,7 +2081,10 @@ function renderMyBookings() {
       if (a.date!==b.date) return a.date.localeCompare(b.date);
       return a.startTime.localeCompare(b.startTime);
     });
-  if (filter) {
+  // 除总管理员外，只显示当前登录账号的预约
+  if (!isSuperAdmin()) {
+    bookings = bookings.filter(b => b.userName === currentUser);
+  } else if (filter) {
     bookings = bookings.filter(b => b.userName.includes(filter));
   }
 
@@ -2108,7 +2117,7 @@ function renderMyBookings() {
       <td>${b.note ? esc(b.note) : '-'}</td>
       <td><span class="tag ${tag}">${label}</span></td>
       <td>
-        <button class="btn btn-outline btn-xs" onclick="showDetail('${b.id}')">详情</button>
+        <button class="btn btn-outline btn-xs" onclick="showRoomPasswordForBooking('${b.id}')">查看密码</button>
         ${canEdit ? `<button class="btn btn-primary btn-xs" style="margin-left:4px" onclick="openEditModal('${b.id}')">编辑</button>` : ''}
         ${canCancel ? `<button class="btn btn-danger btn-xs" style="margin-left:4px" onclick="cancelBooking('${b.id}')">取消</button>` : ''}
       </td>
@@ -2135,6 +2144,13 @@ function showRoomPassword(roomName, date, time) {
   document.getElementById('pwdTime').textContent = (date||'') + (time ? '  ' + time : '');
   document.getElementById('pwdValue').textContent = pwd || '无';
   document.getElementById('pwdModalOverlay').style.display = 'flex';
+}
+// 根据预约ID展示对应直播间密码
+function showRoomPasswordForBooking(id) {
+  const b = loadBookings().find(x=>x.id===id);
+  if (!b) return;
+  const room = ROOMS.find(r=>r.id===b.roomId||r.name===b.roomName||r.name===b.roomId);
+  showRoomPassword(room ? room.name : (b.roomName || b.roomId), b.date, b.startTime+'-'+b.endTime);
 }
 function copyPwd() {
   const v = document.getElementById('pwdValue').textContent;
